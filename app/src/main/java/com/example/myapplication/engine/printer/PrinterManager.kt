@@ -18,8 +18,8 @@ import kotlinx.coroutines.withContext
 data class PrintSettings(
     val paperWidthDots: Int = 512, // Standard for 80mm paper (can be 512 or 576)
     val borderSizeDots: Int = 24,  // Size of the white border around the photo
-    val halftoneMode: Int = Printer.HALFTONE_DITHER, // DITHER, THRESHOLD, or ERROR_DIFFUSION
-    val brightness: Double = 1.0, // 0.1 to 10.0
+    val halftoneMode: Int = Printer.HALFTONE_ERROR_DIFFUSION, // Better for photos
+    val brightness: Double = 1.1, // 0.1 to 10.0
 )
 
 class PrinterManager(private val context: Context) : ReceiveListener {

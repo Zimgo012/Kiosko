@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.engine.image.ImageProcessor
 import com.example.myapplication.engine.printer.PrinterManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class FrameType(val title: String, val rows: Int, val cols: Int) {
     SINGLE("1 x 1", 1, 1),
@@ -102,16 +104,23 @@ class CameraViewModel : ViewModel() {
         val frameType = _selectedFrame.value
         val newSessionPhotos = _currentSessionPhotos.value + bitmap
         
-        if (newSessionPhotos.size >= frameType.photoCount) {
-            val combinedBitmap = if (frameType != FrameType.SINGLE) {
-                ImageProcessor.combineBitmaps(newSessionPhotos, frameType.rows, frameType.cols)
+        viewModelScope.launch {
+            if (newSessionPhotos.size >= frameType.photoCount) {
+                // Frame is complete - Process in background
+                val combinedBitmap = withContext(Dispatchers.Default) {
+                    if (frameType != FrameType.SINGLE) {
+                        ImageProcessor.combineBitmaps(newSessionPhotos, frameType.rows, frameType.cols)
+                    } else {
+                        // For single, we still enhance it for the printer
+                        ImageProcessor.enhanceForThermal(bitmap)
+                    }
+                }
+                _bitmaps.value = _bitmaps.value + combinedBitmap
+                _currentSessionPhotos.value = emptyList()
             } else {
-                bitmap
+                // More photos needed for this frame
+                _currentSessionPhotos.value = newSessionPhotos
             }
-            _bitmaps.value = _bitmaps.value + combinedBitmap
-            _currentSessionPhotos.value = emptyList()
-        } else {
-            _currentSessionPhotos.value = newSessionPhotos
         }
     }
 }
