@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,7 @@ fun CameraScreen(
     }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        // Camera Preview
+        // 1. Camera Preview (Bottom Layer)
         AndroidView(
             factory = { context ->
                 PreviewView(context).apply {
@@ -83,29 +84,16 @@ fun CameraScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Flash Effect Overlay
+        // 2. Flash Effect Overlay (Above Camera, Below Buttons)
+        // Use graphicsLayer to prevent click interception when alpha is 0
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White.copy(alpha = flashAlpha.value))
+                .graphicsLayer { alpha = flashAlpha.value }
+                .background(Color.White)
         )
 
-        // Camera Rotate Button
-        IconButton(
-            onClick = { cameraController.toggleCamera() },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Rotate Camera",
-                tint = Color.White
-            )
-        }
-
-        // Countdown Overlay
+        // 3. Countdown Overlay
         countdown?.let { count ->
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -123,23 +111,21 @@ fun CameraScreen(
             }
         }
 
-        // Printing Progress Overlay
-        if (isPrinting) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color.White)
-                    Text(
-                        text = "Printing...",
-                        color = Color.White,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                }
-            }
+        // 4. UI Elements (Top Layer)
+        
+        // Camera Rotate Button
+        IconButton(
+            onClick = { cameraController.toggleCamera() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Rotate Camera",
+                tint = Color.White
+            )
         }
 
         // Top Gallery (Recent Photos)
@@ -271,6 +257,26 @@ fun CameraScreen(
                         .clip(CircleShape)
                         .background(if (isCapturing) Color.Gray else Color.White)
                 )
+            }
+        }
+
+        // 5. Printing Progress Overlay (Absolute Top)
+        if (isPrinting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable { /* Block touches */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Color.White)
+                    Text(
+                        text = "Printing...",
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
             }
         }
     }

@@ -21,11 +21,14 @@ class CameraController(
         setEnabledUseCases(LifecycleCameraController.IMAGE_CAPTURE)
     }
 
+    private var isBackCamera = true
+
     fun toggleCamera() {
-        controller.cameraSelector = if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-            CameraSelector.DEFAULT_FRONT_CAMERA
-        } else {
+        isBackCamera = !isBackCamera
+        controller.cameraSelector = if (isBackCamera) {
             CameraSelector.DEFAULT_BACK_CAMERA
+        } else {
+            CameraSelector.DEFAULT_FRONT_CAMERA
         }
     }
 
