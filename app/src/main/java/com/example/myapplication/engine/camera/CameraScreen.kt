@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -73,7 +75,7 @@ fun CameraScreen(
     }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        // 1. Camera Preview (Bottom Layer)
+        // Camera Preview
         AndroidView(
             factory = { context ->
                 PreviewView(context).apply {
@@ -84,8 +86,7 @@ fun CameraScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Flash Effect Overlay (Above Camera, Below Buttons)
-        // Use graphicsLayer to prevent click interception when alpha is 0
+        // Flash Effect Overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,7 +94,7 @@ fun CameraScreen(
                 .background(Color.White)
         )
 
-        // 3. Countdown Overlay
+        // Countdown Overlay
         countdown?.let { count ->
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -109,23 +110,6 @@ fun CameraScreen(
                         .padding(40.dp)
                 )
             }
-        }
-
-        // 4. UI Elements (Top Layer)
-        
-        // Camera Rotate Button
-        IconButton(
-            onClick = { cameraController.toggleCamera() },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Rotate Camera",
-                tint = Color.White
-            )
         }
 
         // Top Gallery (Recent Photos)
@@ -237,30 +221,58 @@ fun CameraScreen(
                 }
             }
 
-            // Capture Button (Shutter style)
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(if (isCapturing) Color.Gray.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.2f))
-                    .border(4.dp, Color.White, CircleShape)
-                    .clickable(enabled = !isCapturing) {
-                        viewModel.startCaptureCycle {
-                            cameraController.takePhoto()
-                        }
-                    }
-                    .padding(8.dp)
+            // Main Capture Actions Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
+                // Invisible spacer to balance the row (equal to rotate button size)
+                Box(modifier = Modifier.size(48.dp)) 
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                // Capture Button (Shutter style)
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(80.dp)
                         .clip(CircleShape)
-                        .background(if (isCapturing) Color.Gray else Color.White)
-                )
+                        .background(if (isCapturing) Color.Gray.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.2f))
+                        .border(4.dp, Color.White, CircleShape)
+                        .clickable(enabled = !isCapturing) {
+                            viewModel.startCaptureCycle {
+                                cameraController.takePhoto()
+                            }
+                        }
+                        .padding(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(if (isCapturing) Color.Gray else Color.White)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                // Camera Rotate Button
+                IconButton(
+                    onClick = { cameraController.toggleCamera() },
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Rotate Camera",
+                        tint = Color.White
+                    )
+                }
             }
         }
 
-        // 5. Printing Progress Overlay (Absolute Top)
+        // Printing Progress Overlay
         if (isPrinting) {
             Box(
                 modifier = Modifier

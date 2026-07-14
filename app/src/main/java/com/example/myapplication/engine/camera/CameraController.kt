@@ -24,6 +24,7 @@ class CameraController(
     private var isBackCamera = true
 
     fun toggleCamera() {
+        android.util.Log.d("CameraController", "Toggling camera from isBackCamera=$isBackCamera")
         isBackCamera = !isBackCamera
         controller.cameraSelector = if (isBackCamera) {
             CameraSelector.DEFAULT_BACK_CAMERA
