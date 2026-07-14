@@ -63,6 +63,7 @@ fun CameraScreen(
     val isCapturing by viewModel.isCapturing.collectAsState()
     val isAutoStartEnabled by viewModel.isAutoStartEnabled.collectAsState()
     val isPrinting by viewModel.isPrinting.collectAsState()
+    val printingPreview by viewModel.printingPreview.collectAsState()
     
     val flashAlpha = remember { Animatable(0f) }
 
@@ -141,11 +142,11 @@ fun CameraScreen(
                         modifier = Modifier
                             .padding(top = 4.dp)
                             .background(
-                                if (isPrinting) Color.Gray else MaterialTheme.colorScheme.primary, 
+                                MaterialTheme.colorScheme.primary, 
                                 RoundedCornerShape(4.dp)
                             )
                             .padding(horizontal = 12.dp, vertical = 4.dp)
-                            .clickable(enabled = !isPrinting) { viewModel.printPhoto(bitmap) }
+                            .clickable { viewModel.prepareForPrint(bitmap) }
                     )
                 }
             }
@@ -227,12 +228,9 @@ fun CameraScreen(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Invisible spacer to balance the row (equal to rotate button size)
                 Box(modifier = Modifier.size(48.dp)) 
-
                 Spacer(modifier = Modifier.width(24.dp))
-
-                // Capture Button (Shutter style)
+                // Capture Button
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -253,9 +251,7 @@ fun CameraScreen(
                             .background(if (isCapturing) Color.Gray else Color.White)
                     )
                 }
-
                 Spacer(modifier = Modifier.width(24.dp))
-
                 // Camera Rotate Button
                 IconButton(
                     onClick = { cameraController.toggleCamera() },
@@ -272,8 +268,67 @@ fun CameraScreen(
             }
         }
 
-        // Printing Progress Overlay
-        if (isPrinting) {
+        // Print Preview Dialog / Overlay
+        printingPreview?.let { preview ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { /* Block touches */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Print Preview",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    // Dithered Preview Image
+                    Image(
+                        bitmap = preview.asImageBitmap(),
+                        contentDescription = "Dithered Preview",
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .border(1.dp, Color.White),
+                        contentScale = ContentScale.Fit
+                    )
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            color = Color.White,
+                            modifier = Modifier
+                                .background(Color.DarkGray, RoundedCornerShape(8.dp))
+                                .clickable { viewModel.cancelPrint() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        )
+                        Text(
+                            text = "Print Now",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                .clickable { viewModel.confirmPrint() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Processing / Printing Progress Overlay
+        if (isPrinting && printingPreview == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -284,7 +339,7 @@ fun CameraScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Color.White)
                     Text(
-                        text = "Printing...",
+                        text = "Processing...",
                         color = Color.White,
                         modifier = Modifier.padding(top = 16.dp)
                     )

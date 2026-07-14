@@ -43,6 +43,9 @@ class CameraViewModel : ViewModel() {
     private val _isPrinting = MutableStateFlow(false)
     val isPrinting = _isPrinting.asStateFlow()
 
+    private val _printingPreview = MutableStateFlow<Bitmap?>(null)
+    val printingPreview = _printingPreview.asStateFlow()
+
     private var printerManager: PrinterManager? = null
 
     fun initPrinter(manager: PrinterManager) {
@@ -58,12 +61,26 @@ class CameraViewModel : ViewModel() {
         _isAutoStartEnabled.value = !_isAutoStartEnabled.value
     }
 
-    fun printPhoto(bitmap: Bitmap) {
-        if (_isPrinting.value) return
-        
+    fun prepareForPrint(bitmap: Bitmap) {
         viewModelScope.launch {
             _isPrinting.value = true
+            val dithered = withContext(Dispatchers.Default) {
+                ImageProcessor.processForThermal(bitmap)
+            }
+            _printingPreview.value = dithered
+        }
+    }
+
+    fun cancelPrint() {
+        _printingPreview.value = null
+        _isPrinting.value = false
+    }
+
+    fun confirmPrint() {
+        val bitmap = _printingPreview.value ?: return
+        viewModelScope.launch {
             printerManager?.printBitmap(bitmap)
+            _printingPreview.value = null
             _isPrinting.value = false
         }
     }
@@ -104,23 +121,20 @@ class CameraViewModel : ViewModel() {
         val frameType = _selectedFrame.value
         val newSessionPhotos = _currentSessionPhotos.value + bitmap
         
-        viewModelScope.launch {
-            if (newSessionPhotos.size >= frameType.photoCount) {
-                // Frame is complete - Process in background
+        if (newSessionPhotos.size >= frameType.photoCount) {
+            viewModelScope.launch {
                 val combinedBitmap = withContext(Dispatchers.Default) {
                     if (frameType != FrameType.SINGLE) {
                         ImageProcessor.combineBitmaps(newSessionPhotos, frameType.rows, frameType.cols)
                     } else {
-                        // For single, we still enhance it for the printer
-                        ImageProcessor.enhanceForThermal(bitmap)
+                        bitmap
                     }
                 }
                 _bitmaps.value = _bitmaps.value + combinedBitmap
                 _currentSessionPhotos.value = emptyList()
-            } else {
-                // More photos needed for this frame
-                _currentSessionPhotos.value = newSessionPhotos
             }
+        } else {
+            _currentSessionPhotos.value = newSessionPhotos
         }
     }
 }
