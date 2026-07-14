@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ fun CameraScreen(
     val countdown by viewModel.countdown.collectAsState()
     val isCapturing by viewModel.isCapturing.collectAsState()
     val isAutoStartEnabled by viewModel.isAutoStartEnabled.collectAsState()
+    val isPrinting by viewModel.isPrinting.collectAsState()
     
     val flashAlpha = remember { Animatable(0f) }
 
@@ -121,6 +123,25 @@ fun CameraScreen(
             }
         }
 
+        // Printing Progress Overlay
+        if (isPrinting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Color.White)
+                    Text(
+                        text = "Printing...",
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
+            }
+        }
+
         // Top Gallery (Recent Photos)
         LazyRow(
             modifier = Modifier
@@ -128,7 +149,7 @@ fun CameraScreen(
                 .align(Alignment.TopCenter)
                 .background(Color.Black.copy(alpha = 0.4f))
                 .padding(vertical = 16.dp)
-                .height(130.dp),
+                .height(140.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -149,9 +170,12 @@ fun CameraScreen(
                         fontSize = 12.sp,
                         modifier = Modifier
                             .padding(top = 4.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .clickable { /* TODO: Implement Print */ }
+                            .background(
+                                if (isPrinting) Color.Gray else MaterialTheme.colorScheme.primary, 
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .clickable(enabled = !isPrinting) { viewModel.printPhoto(bitmap) }
                     )
                 }
             }

@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.example.myapplication.engine.camera.CameraController
 import com.example.myapplication.engine.camera.CameraScreen
 import com.example.myapplication.engine.camera.CameraViewModel
+import com.example.myapplication.engine.printer.PrinterManager
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,6 +26,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize Printer Manager
+        viewModel.initPrinter(PrinterManager(this))
 
         if (!hasRequiredPermissions()) {
             ActivityCompat.requestPermissions(
