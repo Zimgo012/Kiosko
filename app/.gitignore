@@ -1,0 +1,23 @@
+# Build outputs, logs, and local configuration
+*.apk
+*.aab
+*.dex
+build/
+.gradle/
+local.properties
+*.hprof
+captures/
+
+# IDE settings and project files
+.idea/workspace.xml
+.idea/caches/
+.idea/libraries/
+*.iml
+
+# Native build and signing files
+.cxx/
+*.jks
+*.keystore
+
+# OS Files
+.DS_Store
