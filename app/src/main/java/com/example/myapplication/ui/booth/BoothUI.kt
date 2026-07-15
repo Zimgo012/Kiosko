@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,6 +49,7 @@ fun BoothUI(
     val isAutoStartEnabled by viewModel.isAutoStartEnabled.collectAsState()
     val isPrinting by viewModel.isPrinting.collectAsState()
     val printingPreview by viewModel.printingPreview.collectAsState()
+    val printQueue by viewModel.printQueue.collectAsState()
     val isGalleryMaximized by viewModel.isGalleryMaximized.collectAsState()
     val selectedPhotoForPreview by viewModel.selectedPhotoForPreview.collectAsState()
     
@@ -164,14 +167,54 @@ fun BoothUI(
                     .fillMaxSize()
                     .background(Color.Black)
             ) {
-                PhotoGallery(
-                    bitmaps = bitmaps,
-                    onPhotoClick = { viewModel.setPhotoForPreview(it) },
-                    onPrintClick = { viewModel.prepareForPrint(it) },
-                    isMaximized = true,
-                    onToggleMaximize = { viewModel.toggleGalleryMaximize() },
-                    modifier = Modifier.fillMaxSize()
-                )
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // Left Side: Gallery (2/3)
+                    PhotoGallery(
+                        bitmaps = bitmaps,
+                        onPhotoClick = { viewModel.setPhotoForPreview(it) },
+                        onPrintClick = { viewModel.prepareForPrint(it) },
+                        isMaximized = true,
+                        onToggleMaximize = { viewModel.toggleGalleryMaximize() },
+                        onAddToPrintQueue = { viewModel.addToPrintQueue(it) },
+                        modifier = Modifier.weight(2f)
+                    )
+
+                    // Right Side: Checkout Panel (1/3)
+                    if (printingPreview != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize()
+                                .background(Color.DarkGray.copy(alpha = 0.2f))
+                                .border(1.dp, Color.White.copy(alpha = 0.2f))
+                        ) {
+                            PrintPreviewOverlay(
+                                preview = printingPreview!!,
+                                queue = printQueue,
+                                onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
+                                onRemove = { viewModel.removeFromPrintQueue(it) },
+                                onCancel = { viewModel.cancelPrint() },
+                                onConfirm = { viewModel.confirmPrint() },
+                                isSidePanel = true
+                            )
+                        }
+                    } else {
+                        // Empty state for checkout when nothing is selected
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize()
+                                .background(Color.DarkGray.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Select photos to print",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -187,13 +230,18 @@ fun BoothUI(
             )
         }
 
-        // Print Preview Dialog / Overlay
-        printingPreview?.let { preview ->
-            PrintPreviewOverlay(
-                preview = preview,
-                onCancel = { viewModel.cancelPrint() },
-                onConfirm = { viewModel.confirmPrint() }
-            )
+        // Print Preview Dialog / Overlay (only if gallery is NOT maximized)
+        if (!isGalleryMaximized) {
+            printingPreview?.let { preview ->
+                PrintPreviewOverlay(
+                    preview = preview,
+                    queue = printQueue,
+                    onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
+                    onRemove = { viewModel.removeFromPrintQueue(it) },
+                    onCancel = { viewModel.cancelPrint() },
+                    onConfirm = { viewModel.confirmPrint() }
+                )
+            }
         }
 
         // Processing / Printing Progress Overlay

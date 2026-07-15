@@ -169,4 +169,29 @@ object ImageProcessor {
         }
         return combined
     }
+
+    /**
+     * Combines multiple bitmaps vertically with spacing for printing.
+     */
+    fun combineForPrinting(photos: List<Bitmap>, spacing: Int = 20): Bitmap {
+        if (photos.isEmpty()) throw IllegalArgumentException("Photo list is empty")
+        
+        val targetWidth = 1024 // High res base for combining
+        val scale = targetWidth.toFloat() / photos[0].width
+        val itemHeight = (photos[0].height * scale).toInt()
+        
+        val totalHeight = (itemHeight * photos.size) + (spacing * (photos.size - 1))
+        
+        val combined = Bitmap.createBitmap(targetWidth, totalHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(combined)
+        canvas.drawColor(Color.WHITE) // Background for spacing
+        
+        for (i in photos.indices) {
+            val scaled = Bitmap.createScaledBitmap(photos[i], targetWidth, itemHeight, true)
+            canvas.drawBitmap(scaled, 0f, (i * (itemHeight + spacing)).toFloat(), null)
+            if (scaled != photos[i]) scaled.recycle()
+        }
+
+        return combined
+    }
 }

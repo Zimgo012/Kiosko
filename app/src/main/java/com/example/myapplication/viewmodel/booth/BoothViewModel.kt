@@ -37,10 +37,23 @@ class BoothViewModel : ViewModel() {
 
     val isPrinting: StateFlow<Boolean> = printerController.isPrinting
     val printingPreview: StateFlow<Bitmap?> = printerController.printingPreview
+    val printQueue: StateFlow<List<Pair<Bitmap, Int>>> = printerController.printQueue
 
     // UI Actions
     fun initPrinter(manager: PrinterManager) {
         printerController.initPrinter(manager)
+    }
+
+    fun addToPrintQueue(bitmap: Bitmap) {
+        printerController.addToPrintQueue(bitmap)
+    }
+
+    fun removeFromPrintQueue(index: Int) {
+        printerController.removeFromPrintQueue(index)
+    }
+
+    fun updateQuantityInQueue(index: Int, quantity: Int) {
+        printerController.updateQuantityInQueue(index, quantity)
     }
 
     fun setFrameType(frameType: FrameType) {

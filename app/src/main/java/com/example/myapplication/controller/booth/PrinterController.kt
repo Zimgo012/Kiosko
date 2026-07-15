@@ -14,6 +14,7 @@ class PrinterController(
     private val scope: CoroutineScope
 ) {
     private var printerManager: PrinterManager? = null
+    private var originalBitmapToPrint: Bitmap? = null
 
     private val _isPrinting = MutableStateFlow(false)
     val isPrinting = _isPrinting.asStateFlow()
@@ -21,23 +22,78 @@ class PrinterController(
     private val _printingPreview = MutableStateFlow<Bitmap?>(null)
     val printingPreview = _printingPreview.asStateFlow()
 
+    private val _printQueue = MutableStateFlow<List<Pair<Bitmap, Int>>>(emptyList())
+    val printQueue = _printQueue.asStateFlow()
+
     fun initPrinter(manager: PrinterManager) {
         this.printerManager = manager
     }
 
     fun prepareForPrint(bitmap: Bitmap) {
+        originalBitmapToPrint = bitmap
+        _printQueue.value = listOf(bitmap to 1)
+        updatePrintPreview()
+    }
+
+    fun addToPrintQueue(bitmap: Bitmap) {
+        val currentQueue = _printQueue.value.toMutableList()
+        if (currentQueue.size < 5) {
+            currentQueue.add(bitmap to 1)
+            _printQueue.value = currentQueue
+            updatePrintPreview()
+        }
+    }
+
+    fun removeFromPrintQueue(index: Int) {
+        val currentQueue = _printQueue.value.toMutableList()
+        if (index in currentQueue.indices) {
+            currentQueue.removeAt(index)
+            _printQueue.value = currentQueue
+            updatePrintPreview()
+        }
+    }
+
+    fun updateQuantityInQueue(index: Int, quantity: Int) {
+        val currentQueue = _printQueue.value.toMutableList()
+        if (index in currentQueue.indices) {
+            currentQueue[index] = currentQueue[index].first to quantity.coerceIn(1, 5)
+            _printQueue.value = currentQueue
+            updatePrintPreview()
+        }
+    }
+
+    private fun updatePrintPreview() {
+        val queue = _printQueue.value
+        if (queue.isEmpty()) {
+            _printingPreview.value = null
+            _isPrinting.value = false
+            return
+        }
+
         scope.launch {
             _isPrinting.value = true
-            val dithered = withContext(Dispatchers.Default) {
-                ImageProcessor.processForThermal(bitmap)
+            val processed = withContext(Dispatchers.Default) {
+                val bitmapsToCombine = mutableListOf<Bitmap>()
+                queue.forEach { (bitmap, qty) ->
+                    repeat(qty) { bitmapsToCombine.add(bitmap) }
+                }
+
+                val combined = if (bitmapsToCombine.size > 1) {
+                    ImageProcessor.combineForPrinting(bitmapsToCombine, spacing = 40)
+                } else {
+                    bitmapsToCombine.first()
+                }
+                ImageProcessor.processForThermal(combined)
             }
-            _printingPreview.value = dithered
+            _printingPreview.value = processed
         }
     }
 
     fun cancelPrint() {
         _printingPreview.value = null
         _isPrinting.value = false
+        _printQueue.value = emptyList()
+        originalBitmapToPrint = null
     }
 
     fun confirmPrint() {

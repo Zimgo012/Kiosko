@@ -46,6 +46,7 @@ fun PhotoGallery(
     onPrintClick: (Bitmap) -> Unit,
     isMaximized: Boolean,
     onToggleMaximize: () -> Unit,
+    onAddToPrintQueue: (Bitmap) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -87,7 +88,13 @@ fun PhotoGallery(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(bitmaps) { bitmap ->
-                        GalleryItem(bitmap, onPhotoClick, onPrintClick)
+                        GalleryItem(
+                            bitmap = bitmap,
+                            onPhotoClick = onPhotoClick,
+                            onPrintClick = onPrintClick,
+                            onAddToPrintQueue = onAddToPrintQueue,
+                            showAddToQueue = true
+                        )
                     }
                 }
             }
@@ -129,7 +136,9 @@ fun PhotoGallery(
 private fun GalleryItem(
     bitmap: Bitmap,
     onPhotoClick: (Bitmap) -> Unit,
-    onPrintClick: (Bitmap) -> Unit
+    onPrintClick: (Bitmap) -> Unit,
+    onAddToPrintQueue: (Bitmap) -> Unit = {},
+    showAddToQueue: Boolean = false
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
@@ -142,18 +151,37 @@ private fun GalleryItem(
                 .clickable { onPhotoClick(bitmap) },
             contentScale = ContentScale.Crop
         )
-        Text(
-            text = "Print",
-            color = Color.White,
-            fontSize = 12.sp,
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .background(
-                    MaterialTheme.colorScheme.primary,
-                    RoundedCornerShape(4.dp)
+        Row(
+            modifier = Modifier.padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "Print",
+                color = Color.White,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clickable { onPrintClick(bitmap) }
+            )
+            
+            if (showAddToQueue) {
+                Text(
+                    text = "+ Queue",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .background(
+                            Color.DarkGray,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clickable { onAddToPrintQueue(bitmap) }
                 )
-                .padding(horizontal = 12.dp, vertical = 4.dp)
-                .clickable { onPrintClick(bitmap) }
-        )
+            }
+        }
     }
 }

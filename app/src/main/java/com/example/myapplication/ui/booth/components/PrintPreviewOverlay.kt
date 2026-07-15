@@ -12,7 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,15 +35,22 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PrintPreviewOverlay(
     preview: Bitmap,
+    queue: List<Pair<Bitmap, Int>>,
+    onQuantityChange: (Int, Int) -> Unit,
+    onRemove: (Int) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isSidePanel: Boolean = false
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
-            .clickable { /* Block touches */ },
+            .then(
+                if (isSidePanel) Modifier else Modifier
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { /* Block touches */ }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -44,17 +58,40 @@ fun PrintPreviewOverlay(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Print Preview",
+                text = if (isSidePanel) "Checkout" else "Print Strip Builder",
                 color = Color.White,
-                fontSize = 24.sp,
+                fontSize = if (isSidePanel) 20.sp else 24.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            // Queue List
+            if (isSidePanel) {
+                // Vertical list for side panel to save horizontal space? 
+                // Actually LazyRow is still fine if the panel is ~300dp
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    itemsIndexed(queue) { index, (bitmap, quantity) ->
+                        QueueItem(bitmap, quantity, index, onQuantityChange, onRemove, compact = true)
+                    }
+                }
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 24.dp)
+                ) {
+                    itemsIndexed(queue) { index, (bitmap, quantity) ->
+                        QueueItem(bitmap, quantity, index, onQuantityChange, onRemove, compact = false)
+                    }
+                }
+            }
             
-            // Dithered Preview Image
+            // Dithered Preview Image (Combined)
             Image(
                 bitmap = preview.asImageBitmap(),
-                contentDescription = "Dithered Preview",
+                contentDescription = "Combined Dithered Preview",
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .border(1.dp, Color.White),
@@ -68,23 +105,86 @@ fun PrintPreviewOverlay(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Text(
-                    text = "Cancel",
+                    text = "Clear",
                     color = Color.White,
                     modifier = Modifier
                         .background(Color.DarkGray, RoundedCornerShape(8.dp))
                         .clickable { onCancel() }
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
                 )
                 Text(
-                    text = "Print Now",
+                    text = "Print Strip",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
                         .clickable { onConfirm() }
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun QueueItem(
+    bitmap: Bitmap,
+    quantity: Int,
+    index: Int,
+    onQuantityChange: (Int, Int) -> Unit,
+    onRemove: (Int) -> Unit,
+    compact: Boolean
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(if (compact) 60.dp else 80.dp)
+                    .border(1.dp, Color.White),
+                contentScale = ContentScale.Crop
+            )
+            // Remove Button
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Remove",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(if (compact) 16.dp else 20.dp)
+                    .background(Color.Red, CircleShape)
+                    .clickable { onRemove(index) }
+            )
+        }
+
+        // Quantity Control
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Text(
+                text = "-",
+                color = Color.White,
+                modifier = Modifier
+                    .background(Color.DarkGray, CircleShape)
+                    .clickable { if (quantity > 1) onQuantityChange(index, quantity - 1) }
+                    .padding(horizontal = if (compact) 6.dp else 8.dp)
+            )
+            Text(
+                text = "$quantity",
+                color = Color.White,
+                fontSize = if (compact) 12.sp else 14.sp
+            )
+            Text(
+                text = "+",
+                color = Color.White,
+                modifier = Modifier
+                    .background(Color.DarkGray, CircleShape)
+                    .clickable { if (quantity < 5) onQuantityChange(index, quantity + 1) }
+                    .padding(horizontal = if (compact) 6.dp else 8.dp)
+            )
         }
     }
 }
