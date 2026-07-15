@@ -10,15 +10,21 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.myapplication.engine.camera.CameraController
-import com.example.myapplication.engine.camera.CameraScreen
 import com.example.myapplication.engine.camera.CameraViewModel
 import com.example.myapplication.engine.printer.PrinterManager
+import com.example.myapplication.ui.booth.CameraScreen
+import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
+
+enum class AppScreen { Home, Camera }
 
 class MainActivity : ComponentActivity() {
 
@@ -39,6 +45,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
+                var currentScreen by remember { mutableStateOf(AppScreen.Home) }
+                
                 val controller = remember {
                     CameraController(
                         applicationContext,
@@ -47,11 +55,22 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    CameraScreen(
-                        cameraController = controller,
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    when (currentScreen) {
+                        AppScreen.Home -> {
+                            HomeScreen(
+                                onStartCamera = { currentScreen = AppScreen.Camera },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                        AppScreen.Camera -> {
+                            CameraScreen(
+                                cameraController = controller,
+                                viewModel = viewModel,
+                                modifier = Modifier.padding(innerPadding),
+                                onBack = { currentScreen = AppScreen.Home }
+                            )
+                        }
+                    }
                 }
             }
         }
