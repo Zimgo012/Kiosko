@@ -1,12 +1,12 @@
 package com.example.myapplication.ui.booth
 
-import android.graphics.Bitmap
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,46 +17,50 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.myapplication.engine.camera.CameraController
-import com.example.myapplication.engine.camera.FrameType
+import com.example.myapplication.viewmodel.booth.BoothViewModel
 import com.example.myapplication.ui.booth.components.*
 
 @Composable
 fun BoothUI(
     cameraController: CameraController,
-    lifecycleOwner: LifecycleOwner,
-    bitmaps: List<Bitmap>,
-    selectedFrame: FrameType,
-    currentSessionPhotosCount: Int,
-    countdown: Int?,
-    isCapturing: Boolean,
-    isAutoStartEnabled: Boolean,
-    isPrinting: Boolean,
-    printingPreview: Bitmap?,
-    flashAlpha: Float,
-    onBack: () -> Unit,
-    onToggleAutoStart: () -> Unit,
-    onFrameTypeSelected: (FrameType) -> Unit,
-    onCaptureClick: () -> Unit,
-    onRotateCamera: () -> Unit,
-    onPreparePrint: (Bitmap) -> Unit,
-    onCancelPrint: () -> Unit,
-    onConfirmPrint: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: BoothViewModel,
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit = {}
 ) {
-    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        var isGalleryMaximized by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val bitmaps by viewModel.bitmaps.collectAsState()
+    val selectedFrame by viewModel.selectedFrame.collectAsState()
+    val currentSessionPhotos by viewModel.currentSessionPhotos.collectAsState()
+    val countdown by viewModel.countdown.collectAsState()
+    val isCapturing by viewModel.isCapturing.collectAsState()
+    val isAutoStartEnabled by viewModel.isAutoStartEnabled.collectAsState()
+    val isPrinting by viewModel.isPrinting.collectAsState()
+    val printingPreview by viewModel.printingPreview.collectAsState()
+    val isGalleryMaximized by viewModel.isGalleryMaximized.collectAsState()
+    val selectedPhotoForPreview by viewModel.selectedPhotoForPreview.collectAsState()
+    
+    val flashAlpha = remember { Animatable(0f) }
 
+    // Observe session photo count to trigger flash
+    LaunchedEffect(currentSessionPhotos.size, bitmaps.size) {
+        if (currentSessionPhotos.isNotEmpty() || bitmaps.isNotEmpty()) {
+            flashAlpha.snapTo(1f)
+            flashAlpha.animateTo(0f, animationSpec = tween(500))
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         Row(modifier = Modifier.fillMaxSize()) {
             // Left Side: Camera Preview
             Box(
@@ -73,14 +77,22 @@ fun BoothUI(
                         .padding(2.dp) // Internal padding to prevent overlap
                         .clip(RoundedCornerShape(10.dp))
                 ) {
-                    CameraPreview(
+                    CameraScreen(
                         cameraController = cameraController,
                         lifecycleOwner = lifecycleOwner,
-                        flashAlpha = flashAlpha,
+                        flashAlpha = flashAlpha.value,
                         countdown = countdown,
                         isCapturing = isCapturing,
-                        onCaptureClick = onCaptureClick,
-                        onRotateCamera = onRotateCamera
+                        selectedFrame = selectedFrame,
+                        currentSessionPhotosCount = currentSessionPhotos.size,
+                        isAutoStartEnabled = isAutoStartEnabled,
+                        onToggleAutoStart = { viewModel.toggleAutoStart() },
+                        onCaptureClick = {
+                            viewModel.startCaptureCycle {
+                                cameraController.takePhoto()
+                            }
+                        },
+                        onRotateCamera = { cameraController.toggleCamera() }
                     )
                 }
             }
@@ -128,19 +140,17 @@ fun BoothUI(
                         Buttons(
                             selectedFrame = selectedFrame,
                             isCapturing = isCapturing,
-                            isAutoStartEnabled = isAutoStartEnabled,
-                            currentSessionPhotosCount = currentSessionPhotosCount,
-                            onToggleAutoStart = onToggleAutoStart,
-                            onFrameTypeSelected = onFrameTypeSelected
+                            onFrameTypeSelected = { viewModel.setFrameType(it) }
                         )
                     }
 
                     // Gallery Area (Bottom)
                     PhotoGallery(
                         bitmaps = bitmaps,
-                        onPrintClick = onPreparePrint,
+                        onPhotoClick = { viewModel.setPhotoForPreview(it) },
+                        onPrintClick = { viewModel.prepareForPrint(it) },
                         isMaximized = false,
-                        onToggleMaximize = { isGalleryMaximized = true },
+                        onToggleMaximize = { viewModel.toggleGalleryMaximize() },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -156,25 +166,38 @@ fun BoothUI(
             ) {
                 PhotoGallery(
                     bitmaps = bitmaps,
-                    onPrintClick = onPreparePrint,
+                    onPhotoClick = { viewModel.setPhotoForPreview(it) },
+                    onPrintClick = { viewModel.prepareForPrint(it) },
                     isMaximized = true,
-                    onToggleMaximize = { isGalleryMaximized = false },
+                    onToggleMaximize = { viewModel.toggleGalleryMaximize() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
+        }
+
+        // Full Photo Preview Overlay
+        selectedPhotoForPreview?.let { photo ->
+            PhotoPreviewOverlay(
+                photo = photo,
+                onClose = { viewModel.setPhotoForPreview(null) },
+                onPrint = {
+                    viewModel.setPhotoForPreview(null)
+                    viewModel.prepareForPrint(photo)
+                }
+            )
         }
 
         // Print Preview Dialog / Overlay
         printingPreview?.let { preview ->
             PrintPreviewOverlay(
                 preview = preview,
-                onCancel = onCancelPrint,
-                onConfirm = onConfirmPrint
+                onCancel = { viewModel.cancelPrint() },
+                onConfirm = { viewModel.confirmPrint() }
             )
         }
 
         // Processing / Printing Progress Overlay
-        if (isPrinting && printingPreview == null) {
+        if (isPrinting && (printingPreview == null)) {
             ProcessingOverlay()
         }
     }

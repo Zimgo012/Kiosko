@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,15 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.engine.camera.FrameType
+import com.example.myapplication.controller.booth.FrameType
 
 @Composable
 fun Buttons(
     selectedFrame: FrameType,
     isCapturing: Boolean,
-    isAutoStartEnabled: Boolean,
-    currentSessionPhotosCount: Int,
-    onToggleAutoStart: () -> Unit,
     onFrameTypeSelected: (FrameType) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -35,44 +31,6 @@ fun Buttons(
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Auto-start Toggle (Only for grids)
-        if (selectedFrame.photoCount > 1) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Auto-next",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Switch(
-                    checked = isAutoStartEnabled,
-                    onCheckedChange = { onToggleAutoStart() },
-                    enabled = !isCapturing
-                )
-            }
-        }
-
-        // Photo Progress Indicator
-        if (selectedFrame.photoCount > 1) {
-            Text(
-                text = if (isCapturing) 
-                    "Capturing ${currentSessionPhotosCount + 1} of ${selectedFrame.photoCount}"
-                    else "Ready for ${selectedFrame.photoCount} photos",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-
         // Frame Type Selector (Disabled while capturing)
         Row(
             modifier = Modifier

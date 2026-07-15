@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PhotoGallery(
     bitmaps: List<Bitmap>,
+    onPhotoClick: (Bitmap) -> Unit,
     onPrintClick: (Bitmap) -> Unit,
     isMaximized: Boolean,
     onToggleMaximize: () -> Unit,
@@ -86,20 +87,20 @@ fun PhotoGallery(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(bitmaps) { bitmap ->
-                        GalleryItem(bitmap, onPrintClick)
+                        GalleryItem(bitmap, onPhotoClick, onPrintClick)
                     }
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                 LazyRow(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(bitmaps) { bitmap ->
-                        GalleryItem(bitmap, onPrintClick)
+                        GalleryItem(bitmap, onPhotoClick, onPrintClick)
                     }
                 }
 
@@ -127,6 +128,7 @@ fun PhotoGallery(
 @Composable
 private fun GalleryItem(
     bitmap: Bitmap,
+    onPhotoClick: (Bitmap) -> Unit,
     onPrintClick: (Bitmap) -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -136,7 +138,8 @@ private fun GalleryItem(
             modifier = Modifier
                 .size(90.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .border(2.dp, Color.White, RoundedCornerShape(8.dp)),
+                .border(2.dp, Color.White, RoundedCornerShape(8.dp))
+                .clickable { onPhotoClick(bitmap) },
             contentScale = ContentScale.Crop
         )
         Text(

@@ -5,17 +5,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,14 +33,19 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import com.example.myapplication.engine.camera.CameraController
+import com.example.myapplication.controller.booth.FrameType
 
 @Composable
-fun CameraPreview(
+fun CameraScreen(
     cameraController: CameraController,
     lifecycleOwner: LifecycleOwner,
     flashAlpha: Float,
     countdown: Int?,
     isCapturing: Boolean,
+    selectedFrame: FrameType,
+    currentSessionPhotosCount: Int,
+    isAutoStartEnabled: Boolean,
+    onToggleAutoStart: () -> Unit,
     onCaptureClick: () -> Unit,
     onRotateCamera: () -> Unit,
     modifier: Modifier = Modifier
@@ -79,6 +88,52 @@ fun CameraPreview(
             }
         }
 
+        // Top Status (Auto-next and Progress)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Auto-start Toggle
+            if (selectedFrame.photoCount > 1) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Auto-next",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Switch(
+                        checked = isAutoStartEnabled,
+                        onCheckedChange = { onToggleAutoStart() },
+                        enabled = !isCapturing
+                    )
+                }
+            }
+
+            // Photo Progress Indicator
+            if (selectedFrame.photoCount > 1) {
+                Text(
+                    text = if (isCapturing) 
+                        "Capturing ${currentSessionPhotosCount + 1} of ${selectedFrame.photoCount}"
+                        else "Ready for ${selectedFrame.photoCount} photos",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+        }
+
         // Overlay Controls (Capture & Rotate)
         Row(
             modifier = Modifier
@@ -86,7 +141,6 @@ fun CameraPreview(
                 .padding(bottom = 32.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Spacer to balance the rotate button if needed, but for now just center them
             Box(modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.width(24.dp))
 
