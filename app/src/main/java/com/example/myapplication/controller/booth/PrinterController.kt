@@ -2,6 +2,7 @@ package com.example.myapplication.controller.booth
 
 import android.graphics.Bitmap
 import com.example.myapplication.engine.image.ImageProcessor
+import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.engine.printer.PrinterManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,13 @@ class PrinterController(
 
     fun initPrinter(manager: PrinterManager) {
         this.printerManager = manager
+    }
+
+    fun updatePrinterSettings(templateSettings: PrintTemplateSettings) {
+        printerManager?.let {
+            it.settings = it.settings.copy(templateSettings = templateSettings)
+        }
+        updatePrintPreview()
     }
 
     fun prepareForPrint(bitmap: Bitmap) {
@@ -84,11 +92,24 @@ class PrinterController(
                     bitmapsToCombine.first()
                 }
                 
-                val targetContentWidth = printerManager?.settings?.let { 
-                    it.paperWidthDots - (it.borderSizeDots * 2) 
-                } ?: 512
+                val settings = printerManager?.settings ?: com.example.myapplication.engine.printer.PrintSettings()
                 
-                ImageProcessor.processForThermal(combined, targetWidth = targetContentWidth)
+                // 1. Add Template (Logo, Header, Footer)
+                val withTemplate = ImageProcessor.applyPrintTemplate(
+                    source = combined,
+                    template = settings.templateSettings,
+                    targetWidth = settings.paperWidthDots,
+                    borderSize = settings.borderSizeDots
+                )
+                
+                // 2. Process for Thermal (Grayscale + Dithering)
+                val result = ImageProcessor.processForThermal(withTemplate, targetWidth = settings.paperWidthDots)
+                
+                // Cleanup intermediate bitmaps
+                if (withTemplate != combined) withTemplate.recycle()
+                if (combined !in bitmapsToCombine) combined.recycle()
+                
+                result
             }
             _printingPreview.value = processed
         }

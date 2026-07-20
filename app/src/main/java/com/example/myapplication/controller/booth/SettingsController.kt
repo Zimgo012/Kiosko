@@ -1,5 +1,6 @@
 package com.example.myapplication.controller.booth
 
+import com.example.myapplication.engine.printer.PrintTemplateSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -18,11 +19,18 @@ class SettingsController {
     private val _isAutoStartEnabled = MutableStateFlow(true)
     val isAutoStartEnabled = _isAutoStartEnabled.asStateFlow()
 
+    private val _printTemplateSettings = MutableStateFlow(PrintTemplateSettings())
+    val printTemplateSettings = _printTemplateSettings.asStateFlow()
+
     fun setFrameType(frameType: FrameType) {
         _selectedFrame.value = frameType
     }
 
     fun toggleAutoStart() {
         _isAutoStartEnabled.value = !_isAutoStartEnabled.value
+    }
+
+    fun updatePrintTemplate(settings: PrintTemplateSettings) {
+        _printTemplateSettings.value = settings
     }
 }

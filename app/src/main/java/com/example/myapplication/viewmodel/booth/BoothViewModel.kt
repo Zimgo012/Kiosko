@@ -8,6 +8,7 @@ import com.example.myapplication.controller.booth.FrameType
 import com.example.myapplication.controller.booth.GalleryController
 import com.example.myapplication.controller.booth.PrinterController
 import com.example.myapplication.controller.booth.SettingsController
+import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.engine.printer.PrinterManager
 import kotlinx.coroutines.flow.StateFlow
 
@@ -27,6 +28,7 @@ class BoothViewModel : ViewModel() {
     val bitmaps: StateFlow<List<Bitmap>> = galleryController.bitmaps
     val selectedFrame: StateFlow<FrameType> = settingsController.selectedFrame
     val isAutoStartEnabled: StateFlow<Boolean> = settingsController.isAutoStartEnabled
+    val printTemplateSettings: StateFlow<PrintTemplateSettings> = settingsController.printTemplateSettings
     
     val currentSessionPhotos: StateFlow<List<Bitmap>> = boothController.currentSessionPhotos
     val countdown: StateFlow<Int?> = boothController.countdown
@@ -63,6 +65,11 @@ class BoothViewModel : ViewModel() {
 
     fun toggleAutoStart() {
         settingsController.toggleAutoStart()
+    }
+
+    fun updatePrintTemplate(settings: PrintTemplateSettings) {
+        settingsController.updatePrintTemplate(settings)
+        printerController.updatePrinterSettings(settings)
     }
 
     fun toggleGalleryMaximize() {

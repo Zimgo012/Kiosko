@@ -57,7 +57,10 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (currentScreen) {
                         AppScreen.Home -> {
+                            val printSettings by boothViewModel.printTemplateSettings.collectAsState()
                             HomeScreen(
+                                settings = printSettings,
+                                onSettingsChange = boothViewModel::updatePrintTemplate,
                                 onStartCamera = { appViewModel.navigateTo(AppScreen.Camera) },
                                 modifier = Modifier.padding(innerPadding)
                             )

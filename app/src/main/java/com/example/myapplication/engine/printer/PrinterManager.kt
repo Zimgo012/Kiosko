@@ -20,6 +20,7 @@ data class PrintSettings(
     val borderSizeDots: Int = 24,  // Size of the white border around the photo
     val halftoneMode: Int = Printer.HALFTONE_THRESHOLD, // Manual Floyd-Steinberg dithering used
     val brightness: Double = 1.0, // Keeping at 1.0 as ImageProcessor handles the sync
+    val templateSettings: PrintTemplateSettings = PrintTemplateSettings()
 )
 
 class PrinterManager(private val context: Context) : ReceiveListener {
@@ -70,39 +71,15 @@ class PrinterManager(private val context: Context) : ReceiveListener {
     }
 
     /**
-     * Resizes the bitmap to fit the paper width and adds a white border.
+     * Resizes the bitmap to fit the paper width if necessary.
+     * Assumes the bitmap is already prepared with template and dithering.
      */
     private fun prepareBitmapForPrint(source: Bitmap): Bitmap {
-        // Calculate dimensions
-        val contentWidth = settings.paperWidthDots - (settings.borderSizeDots * 2)
-        val scale = contentWidth.toFloat() / source.width
-        val contentHeight = (source.height * scale).toInt()
+        if (source.width == settings.paperWidthDots) return source
         
-        // Create the final canvas with white background
-        val finalWidth = settings.paperWidthDots
-        val finalHeight = contentHeight + (settings.borderSizeDots * 2)
-        
-        val output = Bitmap.createBitmap(finalWidth, finalHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-        canvas.drawColor(Color.WHITE)
-        
-        // Draw the resized original photo in the center
-        val scaledBitmap = if (source.width == contentWidth) {
-            source
-        } else {
-            Bitmap.createScaledBitmap(source, contentWidth, contentHeight, true)
-        }
-        
-        canvas.drawBitmap(
-            scaledBitmap, 
-            settings.borderSizeDots.toFloat(), 
-            settings.borderSizeDots.toFloat(), 
-            null
-        )
-        
-        if (scaledBitmap != source) scaledBitmap.recycle()
-        
-        return output
+        val scale = settings.paperWidthDots.toFloat() / source.width
+        val targetHeight = (source.height * scale).toInt()
+        return Bitmap.createScaledBitmap(source, settings.paperWidthDots, targetHeight, true)
     }
 
     private fun initializePrinter() {

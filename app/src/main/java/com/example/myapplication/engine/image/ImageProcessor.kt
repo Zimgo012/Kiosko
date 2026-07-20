@@ -1,6 +1,7 @@
 package com.example.myapplication.engine.image
 
 import android.graphics.*
+import com.example.myapplication.engine.printer.PrintTemplateSettings
 import kotlin.math.*
 
 object ImageProcessor {
@@ -188,5 +189,83 @@ object ImageProcessor {
         }
 
         return combined
+    }
+
+    /**
+     * Adds a header (Logo, Phone, Email) and footer (Message, Description) to the photo.
+     */
+    fun applyPrintTemplate(
+        source: Bitmap,
+        template: PrintTemplateSettings,
+        targetWidth: Int,
+        borderSize: Int
+    ): Bitmap {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            textAlign = Paint.Align.CENTER
+        }
+
+        val logoSize = 36f
+        val infoSize = 20f
+        val footerSize = 28f
+        val descSize = 18f
+
+        // Calculate Header Height
+        val headerPadding = 30
+        val headerHeight = (logoSize + infoSize + headerPadding).toInt()
+
+        // Calculate Footer Height
+        val footerPadding = 30
+        val footerHeight = (footerSize + descSize + footerPadding).toInt()
+
+        // Calculate content dimensions
+        val contentWidth = targetWidth - (borderSize * 2)
+        val scale = contentWidth.toFloat() / source.width
+        val contentHeight = (source.height * scale).toInt()
+        
+        // Create the final canvas with white background
+        val finalHeight = contentHeight + (borderSize * 2) + headerHeight + footerHeight
+        
+        val output = Bitmap.createBitmap(targetWidth, finalHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        canvas.drawColor(Color.WHITE)
+        
+        // --- DRAW HEADER ---
+        var currentY = headerPadding / 2f
+        
+        // Logo
+        paint.textSize = logoSize
+        paint.typeface = Typeface.DEFAULT_BOLD
+        canvas.drawText(template.logoText, targetWidth / 2f, currentY + logoSize, paint)
+        currentY += logoSize + 4f
+        
+        // Info (Number & Email)
+        paint.textSize = infoSize
+        paint.typeface = Typeface.DEFAULT
+        val infoText = "${template.phoneNumber}  |  ${template.email}"
+        canvas.drawText(infoText, targetWidth / 2f, currentY + infoSize, paint)
+        
+        // --- DRAW PHOTO ---
+        val photoTop = headerHeight + borderSize.toFloat()
+        val scaledBitmap = Bitmap.createScaledBitmap(source, contentWidth, contentHeight, true)
+        
+        canvas.drawBitmap(scaledBitmap, borderSize.toFloat(), photoTop, null)
+        scaledBitmap.recycle()
+        
+        // --- DRAW FOOTER ---
+        currentY = photoTop + contentHeight + borderSize + 10f
+        
+        // Message
+        paint.textSize = footerSize
+        paint.typeface = Typeface.DEFAULT_BOLD
+        canvas.drawText(template.message, targetWidth / 2f, currentY + footerSize, paint)
+        currentY += footerSize + 4f
+        
+        // Description
+        paint.textSize = descSize
+        paint.typeface = Typeface.DEFAULT
+        canvas.drawText(template.description, targetWidth / 2f, currentY + descSize, paint)
+
+        return output
     }
 }
