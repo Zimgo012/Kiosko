@@ -195,7 +195,8 @@ fun BoothUI(
                                 onRemove = { viewModel.removeFromPrintQueue(it) },
                                 onCancel = { viewModel.cancelPrint() },
                                 onConfirm = { viewModel.confirmPrint() },
-                                isSidePanel = true
+                                isSidePanel = true,
+                                isRendering = isPrinting
                             )
                         }
                     } else {
@@ -239,7 +240,8 @@ fun BoothUI(
                     onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
                     onRemove = { viewModel.removeFromPrintQueue(it) },
                     onCancel = { viewModel.cancelPrint() },
-                    onConfirm = { viewModel.confirmPrint() }
+                    onConfirm = { viewModel.confirmPrint() },
+                    isRendering = isPrinting
                 )
             }
         }

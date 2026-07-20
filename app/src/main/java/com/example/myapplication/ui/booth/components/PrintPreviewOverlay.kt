@@ -41,7 +41,8 @@ fun PrintPreviewOverlay(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
-    isSidePanel: Boolean = false
+    isSidePanel: Boolean = false,
+    isRendering: Boolean = false
 ) {
     Box(
         modifier = modifier
@@ -74,7 +75,15 @@ fun PrintPreviewOverlay(
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     itemsIndexed(queue) { index, (bitmap, quantity) ->
-                        QueueItem(bitmap, quantity, index, onQuantityChange, onRemove, compact = true)
+                        QueueItem(
+                            bitmap, 
+                            quantity, 
+                            index, 
+                            onQuantityChange, 
+                            onRemove, 
+                            compact = true,
+                            enabled = !isRendering
+                        )
                     }
                 }
             } else {
@@ -83,20 +92,41 @@ fun PrintPreviewOverlay(
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
                     itemsIndexed(queue) { index, (bitmap, quantity) ->
-                        QueueItem(bitmap, quantity, index, onQuantityChange, onRemove, compact = false)
+                        QueueItem(
+                            bitmap, 
+                            quantity, 
+                            index, 
+                            onQuantityChange, 
+                            onRemove, 
+                            compact = false,
+                            enabled = !isRendering
+                        )
                     }
                 }
             }
             
             // Dithered Preview Image (Combined)
-            Image(
-                bitmap = preview.asImageBitmap(),
-                contentDescription = "Combined Dithered Preview",
+            Box(
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .border(1.dp, Color.White),
-                contentScale = ContentScale.Fit
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap = preview.asImageBitmap(),
+                    contentDescription = "Combined Dithered Preview",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    alpha = if (isRendering) 0.5f else 1f
+                )
+                
+                if (isRendering) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
             
             Row(
                 modifier = Modifier
@@ -109,7 +139,7 @@ fun PrintPreviewOverlay(
                     color = Color.White,
                     modifier = Modifier
                         .background(Color.DarkGray, RoundedCornerShape(8.dp))
-                        .clickable { onCancel() }
+                        .clickable(enabled = !isRendering) { onCancel() }
                         .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
                 )
                 Text(
@@ -117,8 +147,11 @@ fun PrintPreviewOverlay(
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                        .clickable { onConfirm() }
+                        .background(
+                            if (isRendering) Color.Gray else MaterialTheme.colorScheme.primary, 
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable(enabled = !isRendering) { onConfirm() }
                         .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
                 )
             }
@@ -133,7 +166,8 @@ private fun QueueItem(
     index: Int,
     onQuantityChange: (Int, Int) -> Unit,
     onRemove: (Int) -> Unit,
-    compact: Boolean
+    compact: Boolean,
+    enabled: Boolean = true
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
@@ -143,7 +177,8 @@ private fun QueueItem(
                 modifier = Modifier
                     .size(if (compact) 60.dp else 80.dp)
                     .border(1.dp, Color.White),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                alpha = if (enabled) 1f else 0.5f
             )
             // Remove Button
             Icon(
@@ -153,8 +188,8 @@ private fun QueueItem(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .size(if (compact) 16.dp else 20.dp)
-                    .background(Color.Red, CircleShape)
-                    .clickable { onRemove(index) }
+                    .background(if (enabled) Color.Red else Color.Gray, CircleShape)
+                    .clickable(enabled = enabled) { onRemove(index) }
             )
         }
 
@@ -168,21 +203,21 @@ private fun QueueItem(
                 text = "-",
                 color = Color.White,
                 modifier = Modifier
-                    .background(Color.DarkGray, CircleShape)
-                    .clickable { if (quantity > 1) onQuantityChange(index, quantity - 1) }
+                    .background(if (enabled && quantity > 1) Color.DarkGray else Color.Black.copy(0.2f), CircleShape)
+                    .clickable(enabled = enabled && quantity > 1) { onQuantityChange(index, quantity - 1) }
                     .padding(horizontal = if (compact) 6.dp else 8.dp)
             )
             Text(
                 text = "$quantity",
-                color = Color.White,
+                color = if (enabled) Color.White else Color.Gray,
                 fontSize = if (compact) 12.sp else 14.sp
             )
             Text(
                 text = "+",
                 color = Color.White,
                 modifier = Modifier
-                    .background(Color.DarkGray, CircleShape)
-                    .clickable { if (quantity < 5) onQuantityChange(index, quantity + 1) }
+                    .background(if (enabled && quantity < 5) Color.DarkGray else Color.Black.copy(0.2f), CircleShape)
+                    .clickable(enabled = enabled && quantity < 5) { onQuantityChange(index, quantity + 1) }
                     .padding(horizontal = if (compact) 6.dp else 8.dp)
             )
         }
