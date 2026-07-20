@@ -18,7 +18,7 @@ import kotlinx.coroutines.withContext
 data class PrintSettings(
     val paperWidthDots: Int = 512, // Standard for 80mm paper (can be 512 or 576)
     val borderSizeDots: Int = 24,  // Size of the white border around the photo
-    val halftoneMode: Int = Printer.HALFTONE_THRESHOLD, // Manual Atkinson dithering used
+    val halftoneMode: Int = Printer.HALFTONE_THRESHOLD, // Manual Floyd-Steinberg dithering used
     val brightness: Double = 1.0, // Keeping at 1.0 as ImageProcessor handles the sync
 )
 
@@ -87,13 +87,20 @@ class PrinterManager(private val context: Context) : ReceiveListener {
         canvas.drawColor(Color.WHITE)
         
         // Draw the resized original photo in the center
-        val scaledBitmap = Bitmap.createScaledBitmap(source, contentWidth, contentHeight, true)
+        val scaledBitmap = if (source.width == contentWidth) {
+            source
+        } else {
+            Bitmap.createScaledBitmap(source, contentWidth, contentHeight, true)
+        }
+        
         canvas.drawBitmap(
             scaledBitmap, 
             settings.borderSizeDots.toFloat(), 
             settings.borderSizeDots.toFloat(), 
             null
         )
+        
+        if (scaledBitmap != source) scaledBitmap.recycle()
         
         return output
     }

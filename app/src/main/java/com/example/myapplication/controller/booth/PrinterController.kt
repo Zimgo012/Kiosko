@@ -83,7 +83,12 @@ class PrinterController(
                 } else {
                     bitmapsToCombine.first()
                 }
-                ImageProcessor.processForThermal(combined)
+                
+                val targetContentWidth = printerManager?.settings?.let { 
+                    it.paperWidthDots - (it.borderSizeDots * 2) 
+                } ?: 512
+                
+                ImageProcessor.processForThermal(combined, targetWidth = targetContentWidth)
             }
             _printingPreview.value = processed
         }

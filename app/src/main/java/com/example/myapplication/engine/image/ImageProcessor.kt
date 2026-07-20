@@ -6,15 +6,16 @@ import kotlin.math.*
 object ImageProcessor {
 
     /**
-     * Stucki Dithering - Higher quality 12-cell error diffusion kernel.
-     * Provides much sharper details and smoother gradients than Atkinson.
+     * Atkinson Dithering - 6-cell error diffusion kernel.
+     * Provides a "cleaner" look for thermal printers by not diffusing the full error,
+     * which reduces "scattering" artifacts and keeps highlights/shadows crisp.
      * Kernel:
-     *           *   8   4
-     *   2   4   8   4   2
-     *   1   2   4   2   1
-     *   (total error divided by 42)
+     *           *   1   1
+     *   1   1   1
+     *       1
+     *   (each neighbor gets 1/8 of the error)
      */
-    fun applyStuckiDithering(source: Bitmap): Bitmap {
+    fun applyAtkinsonDithering(source: Bitmap): Bitmap {
         val width = source.width
         val height = source.height
         val pixels = IntArray(width * height)
@@ -22,15 +23,18 @@ object ImageProcessor {
 
         val gray = IntArray(pixels.size) { i ->
             val p = pixels[i]
-            val r = Color.red(p)
-            val g = Color.green(p)
-            val b = Color.blue(p)
+            val r = (p shr 16) and 0xFF
+            val g = (p shr 8) and 0xFF
+            val b = p and 0xFF
             
             // Perceptual grayscale
             val luma = (0.2126 * r + 0.7152 * g + 0.0722 * b)
             
-            // Gamma correction (0.8) to lighten midtones for thermal dot gain
-            (255.0 * (luma / 255.0).pow(0.8)).toInt().coerceIn(0, 255)
+            // Gamma 0.85 and "compress" levels slightly (0.05 - 0.95 range) 
+            // to eliminate sparse dots in very light/dark areas.
+            val normalized = (luma / 255.0).pow(0.85)
+            val clipped = ((normalized - 0.05) / 0.90).coerceIn(0.0, 1.0)
+            (clipped * 255.0).toInt()
         }
 
         for (y in 0 until height) {
@@ -43,24 +47,16 @@ object ImageProcessor {
                 
                 gray[index] = newPixel
                 
-                // Stucki distribution (Error / 42)
-                // Row 0
-                distributeErrorStucki(gray, x + 1, y, width, height, error, 8)
-                distributeErrorStucki(gray, x + 2, y, width, height, error, 4)
+                // Atkinson distribution (Error / 8)
+                val e8 = error / 8
+                if (e8 == 0) continue
                 
-                // Row 1
-                distributeErrorStucki(gray, x - 2, y + 1, width, height, error, 2)
-                distributeErrorStucki(gray, x - 1, y + 1, width, height, error, 4)
-                distributeErrorStucki(gray, x,     y + 1, width, height, error, 8)
-                distributeErrorStucki(gray, x + 1, y + 1, width, height, error, 4)
-                distributeErrorStucki(gray, x + 2, y + 1, width, height, error, 2)
-                
-                // Row 2
-                distributeErrorStucki(gray, x - 2, y + 2, width, height, error, 1)
-                distributeErrorStucki(gray, x - 1, y + 2, width, height, error, 2)
-                distributeErrorStucki(gray, x,     y + 2, width, height, error, 4)
-                distributeErrorStucki(gray, x + 1, y + 2, width, height, error, 2)
-                distributeErrorStucki(gray, x + 2, y + 2, width, height, error, 1)
+                distributeError(gray, x + 1, y, width, height, e8)
+                distributeError(gray, x + 2, y, width, height, e8)
+                distributeError(gray, x - 1, y + 1, width, height, error / 8)
+                distributeError(gray, x,     y + 1, width, height, error / 8)
+                distributeError(gray, x + 1, y + 1, width, height, error / 8)
+                distributeError(gray, x,     y + 2, width, height, error / 8)
             }
         }
 
@@ -75,33 +71,32 @@ object ImageProcessor {
         return output
     }
 
-    private fun distributeErrorStucki(data: IntArray, x: Int, y: Int, width: Int, height: Int, error: Int, weight: Int) {
+    private fun distributeError(data: IntArray, x: Int, y: Int, width: Int, height: Int, error: Int) {
         if (x in 0 until width && y in 0 until height) {
             val index = y * width + x
-            // Stucki denominator is 42
-            val diffusedError = (error * weight) / 42
-            data[index] = (data[index] + diffusedError).coerceIn(0, 255)
+            data[index] = (data[index] + error).coerceIn(0, 255)
         }
     }
 
     /**
-     * Environment-aware enhancement pipeline using Stucki dithering.
+     * Environment-aware enhancement pipeline using Atkinson dithering.
+     * Atkinson is used specifically to reduce "scattering" dot artifacts common in 
+     * Floyd-Steinberg, resulting in a cleaner print on thermal paper.
      */
-    fun processForThermal(source: Bitmap, autoAdjust: Boolean = true): Bitmap {
-        val targetWidth = 512
+    fun processForThermal(source: Bitmap, targetWidth: Int = 512, autoAdjust: Boolean = true): Bitmap {
         val scale = targetWidth.toFloat() / source.width
         val targetHeight = (source.height * scale).toInt()
         val smallBitmap = Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
 
         val brightness = if (autoAdjust) analyzeBrightness(smallBitmap) else 0.5f
         
-        // Slightly higher contrast for Stucki to keep details sharp
-        val contrast = if (brightness < 0.3f) 1.9f else 1.6f
-        // Lift brightness slightly to keep highlights clean
-        val shift = if (brightness > 0.7f) 25f else 15f
+        // High contrast helps "compress" the dot patterns into solid shapes
+        val contrast = if (brightness < 0.3f) 2.1f else 1.8f
+        // Lift brightness to ensure backgrounds are clean white
+        val shift = if (brightness > 0.7f) 30f else 20f
         
         val enhanced = enhanceForThermal(smallBitmap, contrast, shift)
-        val dithered = applyStuckiDithering(enhanced)
+        val dithered = applyAtkinsonDithering(enhanced)
         
         if (enhanced != smallBitmap) enhanced.recycle()
         smallBitmap.recycle()
