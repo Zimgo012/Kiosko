@@ -2,21 +2,21 @@ package com.example.myapplication.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,8 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.engine.printer.PrintTemplateSettings
+import com.example.myapplication.ui.home.settings.FooterSettingsDialog
+import com.example.myapplication.ui.home.settings.HeaderSettingsDialog
 
 @Composable
 fun HomeScreen(
@@ -35,13 +38,22 @@ fun HomeScreen(
     onStartCamera: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showSettingsDialog by remember { mutableStateOf(false) }
+    var showTopSettings by remember { mutableStateOf(false) }
+    var showBottomSettings by remember { mutableStateOf(false) }
 
-    if (showSettingsDialog) {
-        PrintSettingsDialog(
+    if (showTopSettings) {
+        HeaderSettingsDialog(
             settings = settings,
             onSettingsChange = onSettingsChange,
-            onDismiss = { showSettingsDialog = false }
+            onDismiss = { showTopSettings = false }
+        )
+    }
+
+    if (showBottomSettings) {
+        FooterSettingsDialog(
+            settings = settings,
+            onSettingsChange = onSettingsChange,
+            onDismiss = { showBottomSettings = false }
         )
     }
 
@@ -49,7 +61,7 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -57,7 +69,63 @@ fun HomeScreen(
             style = MaterialTheme.typography.headlineLarge
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        // 1. Top Template Button
+        OutlinedButton(
+            onClick = { showTopSettings = true },
+            modifier = Modifier.fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "EDIT TOP HEADER",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = settings.eventName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // 2. Bottom Template Button
+        OutlinedButton(
+            onClick = { showBottomSettings = true },
+            modifier = Modifier.fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "EDIT BOTTOM FOOTER",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = settings.boothName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
         
         Button(
             onClick = onStartCamera,
@@ -70,78 +138,5 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleLarge
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedButton(
-            onClick = { showSettingsDialog = true },
-            modifier = Modifier.fillMaxWidth(0.8f)
-        ) {
-            Icon(Icons.Default.Settings, contentDescription = null)
-            Spacer(modifier = Modifier.padding(4.dp))
-            Text(text = "Template Settings")
-        }
     }
-}
-
-@Composable
-fun PrintSettingsDialog(
-    settings: PrintTemplateSettings,
-    onSettingsChange: (PrintTemplateSettings) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(text = "Print Template Settings")
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = settings.logoText,
-                    onValueChange = { onSettingsChange(settings.copy(logoText = it)) },
-                    label = { Text("Logo Text") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                OutlinedTextField(
-                    value = settings.phoneNumber,
-                    onValueChange = { onSettingsChange(settings.copy(phoneNumber = it)) },
-                    label = { Text("Phone Number") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                OutlinedTextField(
-                    value = settings.email,
-                    onValueChange = { onSettingsChange(settings.copy(email = it)) },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                OutlinedTextField(
-                    value = settings.message,
-                    onValueChange = { onSettingsChange(settings.copy(message = it)) },
-                    label = { Text("Bottom Message") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                OutlinedTextField(
-                    value = settings.description,
-                    onValueChange = { onSettingsChange(settings.copy(description = it)) },
-                    label = { Text("Other Description") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Done")
-            }
-        }
-    )
 }

@@ -1,6 +1,7 @@
 package com.example.myapplication.engine.image
 
 import android.graphics.*
+import com.example.myapplication.engine.printer.EventNameStyle
 import com.example.myapplication.engine.printer.PrintTemplateSettings
 import kotlin.math.*
 
@@ -192,7 +193,7 @@ object ImageProcessor {
     }
 
     /**
-     * Adds a header (Logo, Phone, Email) and footer (Message, Description) to the photo.
+     * Adds a header (Event Name, Description) and footer (Booth Name, Contacts) to the photo.
      */
     fun applyPrintTemplate(
         source: Bitmap,
@@ -205,66 +206,113 @@ object ImageProcessor {
             textAlign = Paint.Align.CENTER
         }
 
-        val logoSize = 36f
-        val infoSize = 20f
-        val footerSize = 28f
-        val descSize = 18f
+        // Font Sizes
+        val eventNameSize = 48f      // Base size increased
+        val eventDescSize = 20f
+        val boothNameSize = 26f
+        val contactSize = 18f
 
-        // Calculate Header Height
-        val headerPadding = 30
-        val headerHeight = (logoSize + infoSize + headerPadding).toInt()
+        // Calculate Header Height based on Style
+        val headerPadding = 40       // More base padding
+        var headerHeight = (eventNameSize + eventDescSize + headerPadding).toInt()
+        if (template.eventStyle == EventNameStyle.RETRO) {
+            // Retro takes more space because of two lines and slant
+            headerHeight = (eventNameSize * 2.2f + eventDescSize + headerPadding).toInt()
+        }
 
         // Calculate Footer Height
         val footerPadding = 30
-        val footerHeight = (footerSize + descSize + footerPadding).toInt()
+        val footerHeight = (boothNameSize + contactSize + footerPadding).toInt()
 
         // Calculate content dimensions
         val contentWidth = targetWidth - (borderSize * 2)
         val scale = contentWidth.toFloat() / source.width
         val contentHeight = (source.height * scale).toInt()
         
-        // Create the final canvas with white background
-        val finalHeight = contentHeight + (borderSize * 2) + headerHeight + footerHeight
+        // Extra vertical spacing constants
+        val extraSpacingHeaderPhoto = 20f
+        val extraSpacingPhotoFooter = 20f
+        val extraSpacingBottom = 20f
         
-        val output = Bitmap.createBitmap(targetWidth, finalHeight, Bitmap.Config.ARGB_8888)
+        // Create final canvas
+        val finalHeight = contentHeight + (borderSize * 2) + headerHeight + footerHeight + 
+                          extraSpacingHeaderPhoto + extraSpacingPhotoFooter + extraSpacingBottom
+        
+        val output = Bitmap.createBitmap(targetWidth, finalHeight.toInt(), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         canvas.drawColor(Color.WHITE)
         
-        // --- DRAW HEADER ---
-        var currentY = headerPadding / 2f
+        // --- DRAW HEADER (TOP) ---
+        var currentY = 15f
         
-        // Logo
-        paint.textSize = logoSize
-        paint.typeface = Typeface.DEFAULT_BOLD
-        canvas.drawText(template.logoText, targetWidth / 2f, currentY + logoSize, paint)
-        currentY += logoSize + 4f
+        when (template.eventStyle) {
+            EventNameStyle.RETRO -> {
+                val words = template.eventName.split(" ")
+                val firstWord = words.getOrNull(0) ?: ""
+                val rest = if (words.size > 1) words.drop(1).joinToString(" ") else ""
+                
+                paint.textSkewX = -0.25f // SLANTED
+                
+                // Top Word
+                paint.textSize = eventNameSize * 0.9f
+                paint.typeface = Typeface.DEFAULT_BOLD
+                canvas.drawText(firstWord.uppercase(), targetWidth / 2f, currentY + eventNameSize * 0.9f, paint)
+                currentY += eventNameSize * 0.85f
+                
+                // Bottom Words
+                paint.textSize = eventNameSize * 1.2f // Even Bigger
+                paint.typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                canvas.drawText(rest.uppercase(), targetWidth / 2f, currentY + eventNameSize * 1.2f, paint)
+                currentY += eventNameSize * 1.2f + 10f
+                
+                paint.textSkewX = 0f // Reset slant
+            }
+            EventNameStyle.CURSIVE -> {
+                paint.textSize = eventNameSize + 4f
+                paint.typeface = Typeface.create("serif", Typeface.ITALIC)
+                canvas.drawText(template.eventName, targetWidth / 2f, currentY + eventNameSize, paint)
+                currentY += eventNameSize + 10f
+            }
+            EventNameStyle.MODERN -> {
+                paint.textSize = eventNameSize
+                paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                canvas.drawText(template.eventName.uppercase(), targetWidth / 2f, currentY + eventNameSize, paint)
+                currentY += eventNameSize + 10f
+            }
+            EventNameStyle.NORMAL -> {
+                paint.textSize = eventNameSize - 4f
+                paint.typeface = Typeface.DEFAULT
+                canvas.drawText(template.eventName, targetWidth / 2f, currentY + eventNameSize, paint)
+                currentY += eventNameSize + 10f
+            }
+        }
         
-        // Info (Number & Email)
-        paint.textSize = infoSize
+        // Event Description
+        paint.textSize = eventDescSize
         paint.typeface = Typeface.DEFAULT
-        val infoText = "${template.phoneNumber}  |  ${template.email}"
-        canvas.drawText(infoText, targetWidth / 2f, currentY + infoSize, paint)
+        canvas.drawText(template.eventDescription, targetWidth / 2f, currentY + eventDescSize, paint)
         
         // --- DRAW PHOTO ---
-        val photoTop = headerHeight + borderSize.toFloat()
+        // Extra space between header and photo
+        val photoTop = headerHeight + borderSize.toFloat() + extraSpacingHeaderPhoto
         val scaledBitmap = Bitmap.createScaledBitmap(source, contentWidth, contentHeight, true)
-        
         canvas.drawBitmap(scaledBitmap, borderSize.toFloat(), photoTop, null)
         scaledBitmap.recycle()
         
-        // --- DRAW FOOTER ---
-        currentY = photoTop + contentHeight + borderSize + 10f
+        // --- DRAW FOOTER (BOTTOM) ---
+        currentY = photoTop + contentHeight + borderSize + extraSpacingPhotoFooter
         
-        // Message
-        paint.textSize = footerSize
+        // Booth Name
+        paint.textSize = boothNameSize
         paint.typeface = Typeface.DEFAULT_BOLD
-        canvas.drawText(template.message, targetWidth / 2f, currentY + footerSize, paint)
-        currentY += footerSize + 4f
+        canvas.drawText(template.boothName, targetWidth / 2f, currentY + boothNameSize, paint)
+        currentY += boothNameSize + 4f
         
-        // Description
-        paint.textSize = descSize
+        // Contacts
+        paint.textSize = contactSize
         paint.typeface = Typeface.DEFAULT
-        canvas.drawText(template.description, targetWidth / 2f, currentY + descSize, paint)
+        val contactText = "${template.phoneNumber}  |  ${template.email}"
+        canvas.drawText(contactText, targetWidth / 2f, currentY + contactSize, paint)
 
         return output
     }
