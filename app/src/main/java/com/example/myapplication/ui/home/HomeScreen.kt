@@ -34,7 +34,9 @@ import com.example.myapplication.ui.home.settings.HeaderSettingsDialog
 @Composable
 fun HomeScreen(
     settings: PrintTemplateSettings,
+    availableFolders: List<String>,
     onSettingsChange: (PrintTemplateSettings) -> Unit,
+    onRefreshFolders: () -> Unit,
     onStartCamera: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -52,7 +54,9 @@ fun HomeScreen(
     if (showBottomSettings) {
         FooterSettingsDialog(
             settings = settings,
+            availableFolders = availableFolders,
             onSettingsChange = onSettingsChange,
+            onRefreshFolders = onRefreshFolders,
             onDismiss = { showBottomSettings = false }
         )
     }
@@ -120,6 +124,11 @@ fun HomeScreen(
                         text = settings.boothName,
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White
+                    )
+                    Text(
+                        text = "Folder: ${settings.clientFolderName}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.5f)
                     )
                 }
             }

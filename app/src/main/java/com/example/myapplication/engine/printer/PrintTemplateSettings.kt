@@ -14,5 +14,6 @@ data class PrintTemplateSettings(
     val bottomText: String = "18th Birthday",
     val boothName: String = "Rollie Photo Booth",
     val phoneNumber: String = "+1 234 567 890",
-    val email: String = "hello@rollie.com"
+    val email: String = "hello@rollie.com",
+    val clientFolderName: String = "Sarahs_18th_Birthday"
 )

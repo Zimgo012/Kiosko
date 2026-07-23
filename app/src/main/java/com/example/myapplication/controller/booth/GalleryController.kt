@@ -11,4 +11,8 @@ class GalleryController {
     fun addBitmap(bitmap: Bitmap) {
         _bitmaps.value = _bitmaps.value + bitmap
     }
+
+    fun setBitmaps(bitmaps: List<Bitmap>) {
+        _bitmaps.value = bitmaps
+    }
 }

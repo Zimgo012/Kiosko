@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.example.myapplication.controller.menu.AppScreen
 import com.example.myapplication.engine.camera.CameraController
 import com.example.myapplication.engine.printer.PrinterManager
+import com.example.myapplication.engine.storage.StorageManager
 import com.example.myapplication.ui.booth.BoothUI
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
@@ -33,8 +34,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize Printer Manager
+        // Initialize Printer and Storage Managers
         boothViewModel.initPrinter(PrinterManager(this))
+        boothViewModel.initStorage(StorageManager(this))
 
         if (!hasRequiredPermissions()) {
             ActivityCompat.requestPermissions(
@@ -58,9 +60,12 @@ class MainActivity : ComponentActivity() {
                     when (currentScreen) {
                         AppScreen.Home -> {
                             val printSettings by boothViewModel.printTemplateSettings.collectAsState()
+                            val availableFolders by boothViewModel.availableFolders.collectAsState()
                             HomeScreen(
                                 settings = printSettings,
+                                availableFolders = availableFolders,
                                 onSettingsChange = boothViewModel::updatePrintTemplate,
+                                onRefreshFolders = boothViewModel::refreshFolders,
                                 onStartCamera = { appViewModel.navigateTo(AppScreen.Camera) },
                                 modifier = Modifier.padding(innerPadding)
                             )

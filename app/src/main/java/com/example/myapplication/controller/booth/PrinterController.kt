@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import com.example.myapplication.engine.image.ImageProcessor
 import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.engine.printer.PrinterManager
+import com.example.myapplication.engine.storage.StorageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,6 +17,7 @@ class PrinterController(
     private val scope: CoroutineScope
 ) {
     private var printerManager: PrinterManager? = null
+    private var storageManager: StorageManager? = null
     private var originalBitmapToPrint: Bitmap? = null
     private var previewJob: Job? = null
 
@@ -30,6 +32,10 @@ class PrinterController(
 
     fun initPrinter(manager: PrinterManager) {
         this.printerManager = manager
+    }
+
+    fun initStorage(manager: StorageManager) {
+        this.storageManager = manager
     }
 
     fun updatePrinterSettings(templateSettings: PrintTemplateSettings) {
@@ -132,7 +138,16 @@ class PrinterController(
     fun confirmPrint() {
         val bitmap = _printingPreview.value ?: return
         scope.launch {
-            printerManager?.printBitmap(bitmap)
+            val printSuccess = printerManager?.printBitmap(bitmap) ?: false
+            if (printSuccess) {
+                // Save the printed strip to the client's album
+                withContext(Dispatchers.IO) {
+                    storageManager?.savePrintedStrip(
+                        bitmap = bitmap,
+                        clientFolder = printerManager?.settings?.templateSettings?.clientFolderName ?: "default"
+                    )
+                }
+            }
             _printingPreview.value = null
             _isPrinting.value = false
         }

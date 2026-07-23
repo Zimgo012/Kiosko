@@ -10,13 +10,20 @@ import com.example.myapplication.controller.booth.PrinterController
 import com.example.myapplication.controller.booth.SettingsController
 import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.engine.printer.PrinterManager
+import com.example.myapplication.engine.storage.StorageManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class BoothViewModel : ViewModel() {
 
     private val settingsController = SettingsController()
     private val galleryController = GalleryController()
     private val printerController = PrinterController(viewModelScope)
+    private var storageManager: StorageManager? = null
     
     private val boothController = BoothController(
         scope = viewModelScope,
@@ -41,9 +48,35 @@ class BoothViewModel : ViewModel() {
     val printingPreview: StateFlow<Bitmap?> = printerController.printingPreview
     val printQueue: StateFlow<List<Pair<Bitmap, Int>>> = printerController.printQueue
 
+    private val _availableFolders = MutableStateFlow<List<String>>(emptyList())
+    val availableFolders = _availableFolders.asStateFlow()
+
     // UI Actions
     fun initPrinter(manager: PrinterManager) {
         printerController.initPrinter(manager)
+    }
+
+    fun initStorage(manager: StorageManager) {
+        this.storageManager = manager
+        boothController.initStorage(manager)
+        printerController.initStorage(manager)
+        refreshFolders()
+        loadGalleryFromFolder(settingsController.printTemplateSettings.value.clientFolderName)
+    }
+
+    fun loadGalleryFromFolder(folderName: String) {
+        viewModelScope.launch {
+            val bitmaps = withContext(Dispatchers.IO) {
+                storageManager?.loadBitmapsFromFolder(folderName) ?: emptyList()
+            }
+            galleryController.setBitmaps(bitmaps)
+        }
+    }
+
+    fun refreshFolders() {
+        storageManager?.let {
+            _availableFolders.value = it.getAvailableFolders()
+        }
     }
 
     fun addToPrintQueue(bitmap: Bitmap) {
@@ -68,8 +101,13 @@ class BoothViewModel : ViewModel() {
     }
 
     fun updatePrintTemplate(settings: PrintTemplateSettings) {
+        val oldFolderName = settingsController.printTemplateSettings.value.clientFolderName
         settingsController.updatePrintTemplate(settings)
         printerController.updatePrinterSettings(settings)
+        
+        if (oldFolderName != settings.clientFolderName) {
+            loadGalleryFromFolder(settings.clientFolderName)
+        }
     }
 
     fun toggleGalleryMaximize() {

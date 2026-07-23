@@ -2,6 +2,7 @@ package com.example.myapplication.controller.booth
 
 import android.graphics.Bitmap
 import com.example.myapplication.engine.image.ImageProcessor
+import com.example.myapplication.engine.storage.StorageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,6 +16,8 @@ class BoothController(
     private val settingsController: SettingsController,
     private val galleryController: GalleryController
 ) {
+    private var storageManager: StorageManager? = null
+
     private val _currentSessionPhotos = MutableStateFlow<List<Bitmap>>(emptyList())
     val currentSessionPhotos = _currentSessionPhotos.asStateFlow()
 
@@ -37,6 +40,10 @@ class BoothController(
 
     fun setPhotoForPreview(bitmap: Bitmap?) {
         _selectedPhotoForPreview.value = bitmap
+    }
+
+    fun initStorage(manager: StorageManager) {
+        this.storageManager = manager
     }
 
     fun startCaptureCycle(onCapture: () -> Unit) {
@@ -75,6 +82,14 @@ class BoothController(
         val frameType = settingsController.selectedFrame.value
         val newSessionPhotos = _currentSessionPhotos.value + bitmap
         
+        // Save the raw captured photo
+        scope.launch(Dispatchers.IO) {
+            storageManager?.saveCapturedPhoto(
+                bitmap = bitmap,
+                clientFolder = settingsController.printTemplateSettings.value.clientFolderName
+            )
+        }
+
         if (newSessionPhotos.size >= frameType.photoCount) {
             scope.launch {
                 val combinedBitmap = withContext(Dispatchers.Default) {
