@@ -100,6 +100,24 @@ fun CameraScreen(
                     .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             )
+
+            // Photo Progress Indicator (Top Center)
+            if (selectedFrame.photoCount > 1 && (isCapturing || currentSessionPhotosCount > 0)) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiary, // Yellow for visibility
+                    border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+                ) {
+                    val currentPhotoNumber = (currentSessionPhotosCount + 1).coerceAtMost(selectedFrame.photoCount)
+                    Text(
+                        text = "$currentPhotoNumber OUT OF ${selectedFrame.photoCount}",
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black)
+                    )
+                }
+            }
         }
 
         // Flash Effect Overlay
@@ -112,24 +130,7 @@ fun CameraScreen(
 
         // Countdown Overlay
         countdown?.let { count ->
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = count.toString(),
-                    color = Color.White,
-                    fontSize = 160.sp,
-                    fontWeight = FontWeight.Black,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black.copy(alpha = 0.5f),
-                            offset = androidx.compose.ui.geometry.Offset(4f, 4f),
-                            blurRadius = 8f
-                        )
-                    )
-                )
-            }
+            CountdownOverlay(count = count)
         }
     }
 }
