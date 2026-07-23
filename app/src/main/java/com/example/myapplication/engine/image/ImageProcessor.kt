@@ -215,8 +215,8 @@ object ImageProcessor {
         // Calculate Header Height based on Style
         val headerPadding = 40       // More base padding
         var headerHeight = (eventNameSize + eventDescSize + headerPadding).toInt()
-        if (template.eventStyle == EventNameStyle.RETRO) {
-            // Retro takes more space because of two lines and slant
+        if (template.eventStyle != EventNameStyle.NORMAL) {
+            // Split styles take more space because of two lines
             headerHeight = (eventNameSize * 2.2f + eventDescSize + headerPadding).toInt()
         }
 
@@ -247,42 +247,53 @@ object ImageProcessor {
         
         when (template.eventStyle) {
             EventNameStyle.RETRO -> {
-                val words = template.eventName.split(" ")
-                val firstWord = words.getOrNull(0) ?: ""
-                val rest = if (words.size > 1) words.drop(1).joinToString(" ") else ""
-                
                 paint.textSkewX = -0.25f // SLANTED
                 
-                // Top Word
+                // Top Line
                 paint.textSize = eventNameSize * 0.9f
                 paint.typeface = Typeface.DEFAULT_BOLD
-                canvas.drawText(firstWord.uppercase(), targetWidth / 2f, currentY + eventNameSize * 0.9f, paint)
+                canvas.drawText(template.topText.uppercase(), targetWidth / 2f, currentY + eventNameSize * 0.9f, paint)
                 currentY += eventNameSize * 0.85f
                 
-                // Bottom Words
+                // Bottom Line
                 paint.textSize = eventNameSize * 1.2f // Even Bigger
                 paint.typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                canvas.drawText(rest.uppercase(), targetWidth / 2f, currentY + eventNameSize * 1.2f, paint)
+                canvas.drawText(template.bottomText.uppercase(), targetWidth / 2f, currentY + eventNameSize * 1.2f, paint)
                 currentY += eventNameSize * 1.2f + 10f
                 
                 paint.textSkewX = 0f // Reset slant
             }
             EventNameStyle.CURSIVE -> {
-                paint.textSize = eventNameSize + 4f
+                // Top Line
+                paint.textSize = eventNameSize
                 paint.typeface = Typeface.create("serif", Typeface.ITALIC)
-                canvas.drawText(template.eventName, targetWidth / 2f, currentY + eventNameSize, paint)
-                currentY += eventNameSize + 10f
+                canvas.drawText(template.topText, targetWidth / 2f, currentY + eventNameSize, paint)
+                currentY += eventNameSize * 0.9f
+
+                // Bottom Line
+                paint.textSize = eventNameSize * 1.2f
+                paint.typeface = Typeface.create("serif", Typeface.BOLD_ITALIC)
+                canvas.drawText(template.bottomText, targetWidth / 2f, currentY + eventNameSize * 1.2f, paint)
+                currentY += eventNameSize * 1.2f + 10f
             }
             EventNameStyle.MODERN -> {
-                paint.textSize = eventNameSize
+                // Top Line
+                paint.textSize = eventNameSize * 0.9f
                 paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                canvas.drawText(template.eventName.uppercase(), targetWidth / 2f, currentY + eventNameSize, paint)
-                currentY += eventNameSize + 10f
+                canvas.drawText(template.topText.uppercase(), targetWidth / 2f, currentY + eventNameSize * 0.9f, paint)
+                currentY += eventNameSize * 0.85f
+
+                // Bottom Line
+                paint.textSize = eventNameSize * 1.3f
+                paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                canvas.drawText(template.bottomText.uppercase(), targetWidth / 2f, currentY + eventNameSize * 1.3f, paint)
+                currentY += eventNameSize * 1.3f + 10f
             }
             EventNameStyle.NORMAL -> {
                 paint.textSize = eventNameSize - 4f
                 paint.typeface = Typeface.DEFAULT
-                canvas.drawText(template.eventName, targetWidth / 2f, currentY + eventNameSize, paint)
+                val combinedText = "${template.topText} ${template.bottomText}"
+                canvas.drawText(combinedText, targetWidth / 2f, currentY + eventNameSize, paint)
                 currentY += eventNameSize + 10f
             }
         }

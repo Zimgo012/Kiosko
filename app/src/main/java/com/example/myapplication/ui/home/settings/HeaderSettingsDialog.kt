@@ -63,51 +63,29 @@ fun HeaderSettingsDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // New Preview Logic for different styles
-                        when(settings.eventStyle) {
-                            EventNameStyle.RETRO -> {
-                                val words = settings.eventName.split(" ")
-                                val first = words.getOrNull(0) ?: ""
-                                val rest = if (words.size > 1) words.drop(1).joinToString(" ") else ""
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = first.uppercase(),
-                                        fontSize = 22.sp, // Bigger
-                                        fontWeight = FontWeight.Bold,
-                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, // Slanted
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = rest.uppercase(),
-                                        fontSize = 32.sp, // Bigger
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Serif,
-                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, // Slanted
-                                        color = Color.Black
-                                    )
-                                }
-                            }
-                            EventNameStyle.CURSIVE -> {
+                        if (settings.eventStyle == EventNameStyle.NORMAL) {
+                            Text(
+                                text = "${settings.topText} ${settings.bottomText}",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = settings.eventName,
-                                    fontSize = 28.sp,
-                                    fontFamily = FontFamily.Serif,
-                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                    text = if (settings.eventStyle == EventNameStyle.CURSIVE) settings.topText else settings.topText.uppercase(),
+                                    fontSize = 22.sp,
+                                    fontWeight = if (settings.eventStyle == EventNameStyle.CURSIVE) FontWeight.Normal else FontWeight.Bold,
+                                    fontFamily = if (settings.eventStyle == EventNameStyle.CURSIVE) FontFamily.Serif else FontFamily.Default,
+                                    fontStyle = if (settings.eventStyle == EventNameStyle.CURSIVE) androidx.compose.ui.text.font.FontStyle.Italic else if (settings.eventStyle == EventNameStyle.RETRO) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal,
                                     color = Color.Black
                                 )
-                            }
-                            EventNameStyle.MODERN -> {
                                 Text(
-                                    text = settings.eventName.uppercase(),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.Black
-                                )
-                            }
-                            EventNameStyle.NORMAL -> {
-                                Text(
-                                    text = settings.eventName,
-                                    fontSize = 24.sp,
+                                    text = if (settings.eventStyle == EventNameStyle.CURSIVE) settings.bottomText else settings.bottomText.uppercase(),
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = if (settings.eventStyle == EventNameStyle.MODERN) FontFamily.Default else FontFamily.Serif,
+                                    fontStyle = if (settings.eventStyle == EventNameStyle.CURSIVE) androidx.compose.ui.text.font.FontStyle.Italic else if (settings.eventStyle == EventNameStyle.RETRO) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal,
                                     color = Color.Black
                                 )
                             }
@@ -125,11 +103,18 @@ fun HeaderSettingsDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
-                    value = settings.eventName,
-                    onValueChange = { onSettingsChange(settings.copy(eventName = it)) },
-                    label = { Text("Event Name") },
+                    value = settings.topText,
+                    onValueChange = { onSettingsChange(settings.copy(topText = it)) },
+                    label = { Text("Event Name (Top Line)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedTextField(
+                    value = settings.bottomText,
+                    onValueChange = { onSettingsChange(settings.copy(bottomText = it)) },
+                    label = { Text("Event Name (Bottom Line)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 OutlinedTextField(
                     value = settings.eventDescription,
                     onValueChange = { onSettingsChange(settings.copy(eventDescription = it)) },

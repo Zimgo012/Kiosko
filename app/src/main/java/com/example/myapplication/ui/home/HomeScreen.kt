@@ -89,7 +89,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = settings.eventName,
+                        text = "${settings.topText} ${settings.bottomText}",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White
                     )

@@ -8,9 +8,10 @@ enum class EventNameStyle(val displayName: String) {
 }
 
 data class PrintTemplateSettings(
-    val eventName: String = "Sarah's 18th Birthday",
     val eventDescription: String = "Celebrating life and love",
     val eventStyle: EventNameStyle = EventNameStyle.RETRO,
+    val topText: String = "Sarah's",
+    val bottomText: String = "18th Birthday",
     val boothName: String = "Rollie Photo Booth",
     val phoneNumber: String = "+1 234 567 890",
     val email: String = "hello@rollie.com"
