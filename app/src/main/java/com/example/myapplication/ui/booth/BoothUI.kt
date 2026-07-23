@@ -157,7 +157,7 @@ fun BoothUI(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Buttons(
+                        LayoutSelector(
                             selectedFrame = selectedFrame,
                             isCapturing = isCapturing,
                             onFrameTypeSelected = { viewModel.setFrameType(it) }
