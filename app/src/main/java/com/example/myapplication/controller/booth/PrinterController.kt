@@ -30,6 +30,9 @@ class PrinterController(
     private val _printQueue = MutableStateFlow<List<Pair<Bitmap, Int>>>(emptyList())
     val printQueue = _printQueue.asStateFlow()
 
+    private val _showQueueFullWarning = MutableStateFlow(false)
+    val showQueueFullWarning = _showQueueFullWarning.asStateFlow()
+
     fun initPrinter(manager: PrinterManager) {
         this.printerManager = manager
     }
@@ -57,7 +60,13 @@ class PrinterController(
             currentQueue.add(bitmap to 1)
             _printQueue.value = currentQueue
             updatePrintPreview()
+        } else {
+            _showQueueFullWarning.value = true
         }
+    }
+
+    fun dismissQueueFullWarning() {
+        _showQueueFullWarning.value = false
     }
 
     fun removeFromPrintQueue(index: Int) {

@@ -9,7 +9,7 @@ class GalleryController {
     val bitmaps = _bitmaps.asStateFlow()
 
     fun addBitmap(bitmap: Bitmap) {
-        _bitmaps.value = _bitmaps.value + bitmap
+        _bitmaps.value = listOf(bitmap) + _bitmaps.value
     }
 
     fun setBitmaps(bitmaps: List<Bitmap>) {

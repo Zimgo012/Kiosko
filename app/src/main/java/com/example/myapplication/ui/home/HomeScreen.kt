@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.engine.printer.PrintTemplateSettings
+import com.example.myapplication.ui.components.NeoPopButton
 import com.example.myapplication.ui.home.settings.FooterSettingsDialog
 import com.example.myapplication.ui.home.settings.HeaderSettingsDialog
 import com.example.myapplication.ui.theme.BlueGreen
@@ -104,17 +105,20 @@ fun HomeScreen(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .offset(x = (-10).dp, y = (-20).dp)
+                        .offset(x = 10.dp, y = (-10).dp)
                         .rotate(10f),
-                    shape = RoundedCornerShape(8.dp),
-                    color = BlueGreen, // Using BlueGreen from our palette
-                    border = borderStroke(width = 2.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    color = BlueGreen,
+                    border = borderStroke(width = 3.dp)
                 ) {
                     Text(
                         text = "ROLLIE PHOTOBOOTH",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                         color = Color.White,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        )
                     )
                 }
             }
@@ -179,58 +183,6 @@ fun HomeScreen(
                 fontSize = 14.sp,
                 iconSize = 20.dp
             )
-        }
-    }
-}
-
-@Composable
-fun NeoPopButton(
-    text: String,
-    icon: ImageVector,
-    containerColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    fontSize: TextUnit = 18.sp,
-    iconSize: androidx.compose.ui.unit.Dp = 24.dp
-) {
-    Box(modifier = modifier) {
-        // Shadow (The "Neo" depth)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(6.dp, 6.dp)
-                .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(12.dp))
-        )
-        // Main Button
-        Surface(
-            onClick = onClick,
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(12.dp),
-            color = containerColor,
-            border = borderStroke(width = 3.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    icon, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(iconSize),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = text.uppercase(),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.secondary,
-                        letterSpacing = 1.sp,
-                        fontSize = fontSize
-                    )
-                )
-            }
         }
     }
 }

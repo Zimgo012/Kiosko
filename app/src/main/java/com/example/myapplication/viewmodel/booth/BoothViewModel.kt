@@ -48,6 +48,7 @@ class BoothViewModel : ViewModel() {
     val isPrinting: StateFlow<Boolean> = printerController.isPrinting
     val printingPreview: StateFlow<Bitmap?> = printerController.printingPreview
     val printQueue: StateFlow<List<Pair<Bitmap, Int>>> = printerController.printQueue
+    val showQueueFullWarning: StateFlow<Boolean> = printerController.showQueueFullWarning
 
     private val _availableFolders = MutableStateFlow<List<String>>(emptyList())
     val availableFolders = _availableFolders.asStateFlow()
@@ -106,6 +107,10 @@ class BoothViewModel : ViewModel() {
 
     fun addToPrintQueue(bitmap: Bitmap) {
         printerController.addToPrintQueue(bitmap)
+    }
+
+    fun dismissQueueFullWarning() {
+        printerController.dismissQueueFullWarning()
     }
 
     fun removeFromPrintQueue(index: Int) {

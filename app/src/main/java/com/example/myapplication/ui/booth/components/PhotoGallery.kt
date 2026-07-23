@@ -5,16 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,18 +15,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -50,43 +43,36 @@ fun PhotoGallery(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    Box(
-        modifier = modifier
-            .background(Color.Black.copy(alpha = 0.4f))
-    ) {
-        if (isMaximized) {
+    if (isMaximized) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header for maximized view
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Photo Gallery",
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineSmall
+                        text = "Full Gallery",
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black),
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     IconButton(
                         onClick = onToggleMaximize,
-                        modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape)
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.5f), CircleShape)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.secondary)
                     }
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 120.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
+                    columns = GridCells.Adaptive(minSize = 180.dp),
+                    contentPadding = PaddingValues(32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     items(bitmaps) { bitmap ->
                         GalleryItem(
@@ -95,40 +81,27 @@ fun PhotoGallery(
                             onPrintClick = onPrintClick,
                             onAddToPrintQueue = onAddToPrintQueue,
                             showAddToQueue = true,
-                            enabled = enabled
+                            enabled = enabled,
+                            showPrintButton = true
                         )
                     }
                 }
             }
-        } else {
-            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
-                LazyRow(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(bitmaps) { bitmap ->
-                        GalleryItem(bitmap, onPhotoClick, onPrintClick, enabled = enabled)
-                    }
-                }
-
-                // Maximize Button
-                IconButton(
-                    onClick = onToggleMaximize,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(32.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = "Maximize",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+        }
+    } else {
+        LazyRow(
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(bitmaps.take(5)) { bitmap ->
+                GalleryItem(
+                    bitmap, 
+                    onPhotoClick, 
+                    onPrintClick, 
+                    enabled = enabled,
+                    compact = true
+                )
             }
         }
     }
@@ -141,50 +114,79 @@ private fun GalleryItem(
     onPrintClick: (Bitmap) -> Unit,
     onAddToPrintQueue: (Bitmap) -> Unit = {},
     showAddToQueue: Boolean = false,
-    enabled: Boolean = true
+    showPrintButton: Boolean = true,
+    enabled: Boolean = true,
+    compact: Boolean = false
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(90.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(2.dp, Color.White, RoundedCornerShape(8.dp))
-                .clickable { onPhotoClick(bitmap) },
-            contentScale = ContentScale.Crop,
-            alpha = if (enabled) 1f else 0.5f
-        )
-        Row(
-            modifier = Modifier.padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Print",
-                color = Color.White,
-                fontSize = 12.sp,
+    val size = if (compact) 115.dp else 180.dp
+    
+    // Polaroid Style Frame
+    Box(
+        modifier = Modifier
+            .size(width = size, height = size * 1.2f)
+            .rotate(if (compact) -2f else 0f) // Slight tilt for flavor
+            .background(Color.White, RoundedCornerShape(4.dp))
+            .border(1.dp, Color.Black.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+            .padding(if (compact) 6.dp else 10.dp)
+            .clickable(enabled = enabled) { onPhotoClick(bitmap) }
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
                 modifier = Modifier
-                    .background(
-                        if (enabled) MaterialTheme.colorScheme.primary else Color.Gray,
-                        RoundedCornerShape(4.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .clickable(enabled = enabled) { onPrintClick(bitmap) }
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(2.dp)),
+                contentScale = ContentScale.Crop
             )
             
-            if (showAddToQueue) {
-                Text(
-                    text = "+ Queue",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .background(
-                            if (enabled) Color.DarkGray else Color.Black.copy(alpha = 0.2f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .clickable(enabled = enabled) { onAddToPrintQueue(bitmap) }
-                )
+            if (!compact) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (showPrintButton) {
+                        // PRINT Button (Pop out style)
+                        Surface(
+                            onClick = { onPrintClick(bitmap) },
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black.copy(alpha = 0.2f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "PRINT",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (showAddToQueue) {
+                        // + QUEUE Button (Pop out style)
+                        Surface(
+                            onClick = { onAddToPrintQueue(bitmap) },
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black.copy(alpha = 0.2f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "+ QUEUE",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

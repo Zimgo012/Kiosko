@@ -5,32 +5,26 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.ui.components.NeoPopButton
 
 @Composable
 fun PrintPreviewOverlay(
@@ -49,82 +43,64 @@ fun PrintPreviewOverlay(
             .fillMaxSize()
             .then(
                 if (isSidePanel) Modifier else Modifier
-                    .background(Color.Black.copy(alpha = 0.9f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
                     .clickable { /* Block touches */ }
             ),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(24.dp).fillMaxSize()
         ) {
             Text(
-                text = if (isSidePanel) "Checkout" else "Print Strip Builder",
-                color = Color.White,
-                fontSize = if (isSidePanel) 20.sp else 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                text = if (isSidePanel) "CHECKOUT" else "STRIP BUILDER",
+                color = MaterialTheme.colorScheme.secondary,
+                fontSize = if (isSidePanel) 24.sp else 32.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
 
             // Queue List
-            if (isSidePanel) {
-                // Vertical list for side panel to save horizontal space? 
-                // Actually LazyRow is still fine if the panel is ~300dp
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    itemsIndexed(queue) { index, (bitmap, quantity) ->
-                        QueueItem(
-                            bitmap, 
-                            quantity, 
-                            index, 
-                            onQuantityChange, 
-                            onRemove, 
-                            compact = true,
-                            enabled = !isRendering
-                        )
-                    }
-                }
-            } else {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(bottom = 24.dp)
-                ) {
-                    itemsIndexed(queue) { index, (bitmap, quantity) ->
-                        QueueItem(
-                            bitmap, 
-                            quantity, 
-                            index, 
-                            onQuantityChange, 
-                            onRemove, 
-                            compact = false,
-                            enabled = !isRendering
-                        )
-                    }
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(bottom = 24.dp).fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                itemsIndexed(queue) { index, (bitmap, quantity) ->
+                    QueueItem(
+                        bitmap, 
+                        quantity, 
+                        index, 
+                        onQuantityChange, 
+                        onRemove, 
+                        compact = isSidePanel,
+                        enabled = !isRendering
+                    )
                 }
             }
             
             // Dithered Preview Image (Combined)
-            Box(
+            Surface(
                 modifier = Modifier
-                    .weight(1f, fill = false)
-                    .border(1.dp, Color.White),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                shape = RectangleShape,
+                color = Color(0xFF263238), // Dark Slate for contrast against white paper
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
             ) {
-                Image(
-                    bitmap = preview.asImageBitmap(),
-                    contentDescription = "Combined Dithered Preview",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    alpha = if (isRendering) 0.5f else 1f
-                )
-                
-                if (isRendering) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(32.dp)
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        bitmap = preview.asImageBitmap(),
+                        contentDescription = "Combined Preview",
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        contentScale = ContentScale.Fit,
+                        alpha = if (isRendering) 0.5f else 1f
                     )
+                    
+                    if (isRendering) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
             
@@ -132,27 +108,23 @@ fun PrintPreviewOverlay(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
+                NeoPopButton(
                     text = "Clear",
-                    color = Color.White,
-                    modifier = Modifier
-                        .background(Color.DarkGray, RoundedCornerShape(8.dp))
-                        .clickable(enabled = !isRendering) { onCancel() }
-                        .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
+                    icon = Icons.Default.Delete,
+                    containerColor = Color.White,
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f).height(60.dp),
+                    enabled = !isRendering
                 )
-                Text(
-                    text = "Print Strip",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .background(
-                            if (isRendering) Color.Gray else MaterialTheme.colorScheme.primary, 
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable(enabled = !isRendering) { onConfirm() }
-                        .padding(horizontal = if (isSidePanel) 16.dp else 24.dp, vertical = 12.dp)
+                NeoPopButton(
+                    text = "Print",
+                    icon = Icons.Default.Print,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1.5f).height(60.dp),
+                    enabled = !isRendering
                 )
             }
         }
@@ -171,54 +143,63 @@ private fun QueueItem(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(if (compact) 60.dp else 80.dp)
-                    .border(1.dp, Color.White),
-                contentScale = ContentScale.Crop,
-                alpha = if (enabled) 1f else 0.5f
-            )
+            Surface(
+                modifier = Modifier.size(if (compact) 70.dp else 100.dp),
+                shape = RectangleShape,
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(4.dp),
+                    contentScale = ContentScale.Crop,
+                    alpha = if (enabled) 1f else 0.5f
+                )
+            }
             // Remove Button
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Remove",
-                tint = Color.White,
+            IconButton(
+                onClick = { onRemove(index) },
+                enabled = enabled,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .size(if (compact) 16.dp else 20.dp)
-                    .background(if (enabled) Color.Red else Color.Gray, CircleShape)
-                    .clickable(enabled = enabled) { onRemove(index) }
-            )
+                    .offset(x = 8.dp, y = (-8).dp)
+                    .size(24.dp)
+                    .background(if (enabled) MaterialTheme.colorScheme.error else Color.Gray, RectangleShape)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White, modifier = Modifier.size(16.dp))
+            }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Quantity Control
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RectangleShape).padding(horizontal = 4.dp)
         ) {
             Text(
                 text = "-",
                 color = Color.White,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .background(if (enabled && quantity > 1) Color.DarkGray else Color.Black.copy(0.2f), CircleShape)
                     .clickable(enabled = enabled && quantity > 1) { onQuantityChange(index, quantity - 1) }
-                    .padding(horizontal = if (compact) 6.dp else 8.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
             Text(
                 text = "$quantity",
-                color = if (enabled) Color.White else Color.Gray,
-                fontSize = if (compact) 12.sp else 14.sp
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
             Text(
                 text = "+",
                 color = Color.White,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .background(if (enabled && quantity < 5) Color.DarkGray else Color.Black.copy(0.2f), CircleShape)
                     .clickable(enabled = enabled && quantity < 5) { onQuantityChange(index, quantity + 1) }
-                    .padding(horizontal = if (compact) 6.dp else 8.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
