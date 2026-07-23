@@ -4,14 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -100,153 +93,27 @@ fun BoothUI(
                             onBack = onBack
                         )
 
-                        // INTERNAL CONTROLS OVERLAY (At the bottom of Camera Screen)
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .background(Color.Black.copy(alpha = 0.25f)) // Lower height feel
-                                .padding(horizontal = 24.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Left: Gallery Access (Widen to cover left side)
-                            Column(
-                                modifier = Modifier.weight(1.4f), 
-                                horizontalAlignment = Alignment.Start,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                NeoPopButton(
-                                    text = "Gallery",
-                                    icon = Icons.Default.PhotoLibrary,
-                                    containerColor = Color.White,
-                                    onClick = { viewModel.toggleGalleryMaximize() },
-                                    modifier = Modifier.width(110.dp).height(32.dp),
-                                    fontSize = 10.sp,
-                                    iconSize = 16.dp
-                                )
-
-                                // Mini Gallery (Taller and Wider)
-                                Box(modifier = Modifier.height(130.dp).fillMaxWidth()) {
-                                    PhotoGallery(
-                                        bitmaps = bitmaps,
-                                        onPhotoClick = { viewModel.setPhotoForPreview(it) },
-                                        onPrintClick = { viewModel.prepareForPrint(it) },
-                                        isMaximized = false,
-                                        onToggleMaximize = { viewModel.toggleGalleryMaximize() },
-                                        enabled = !isPrinting
-                                    )
+                        BoothControlsOverlay(
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                            bitmaps = bitmaps,
+                            selectedFrame = selectedFrame,
+                            isCapturing = isCapturing,
+                            isAutoStartEnabled = isAutoStartEnabled,
+                            isPrinting = isPrinting,
+                            onToggleAutoStart = { viewModel.toggleAutoStart() },
+                            onCaptureClick = {
+                                viewModel.startCaptureCycle {
+                                    cameraController.takePhoto()
                                 }
-                            }
-
-                            // Center: Action Group (SNAP! is bigger and centered)
-                            Row(
-                                modifier = Modifier.weight(1.5f), // More weight to center properly
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // SNAP! Button
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(110.dp) // Bigger Snap
-                                            .background(MaterialTheme.colorScheme.secondary, CircleShape)
-                                            .padding(4.dp)
-                                    ) {
-                                        Surface(
-                                            onClick = {
-                                                if (!isCapturing) {
-                                                    viewModel.startCaptureCycle { cameraController.takePhoto() }
-                                                }
-                                            },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.tertiary,
-                                            modifier = Modifier.fillMaxSize()
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    Icons.Default.CameraAlt, 
-                                                    contentDescription = "Capture",
-                                                    modifier = Modifier.size(44.dp),
-                                                    tint = MaterialTheme.colorScheme.secondary
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Text(
-                                        "SNAP!", 
-                                        modifier = Modifier.padding(top = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                                        color = Color.White
-                                    )
-                                }
-                                
-                                Spacer(Modifier.width(16.dp))
-
-                                // Rotate Camera
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp) 
-                                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f), CircleShape)
-                                        .padding(3.dp)
-                                ) {
-                                    Surface(
-                                        onClick = { cameraController.toggleCamera() },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Refresh, 
-                                                contentDescription = "Rotate",
-                                                modifier = Modifier.size(24.dp),
-                                                tint = MaterialTheme.colorScheme.secondary
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Right: Wide Styles & History
-                            Column(
-                                modifier = Modifier.weight(1.3f),
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Auto Capture Toggle (Only for multi-photo layouts)
-                                if (selectedFrame.photoCount > 1) {
-                                    NeoPopButton(
-                                        text = if (isAutoStartEnabled) "AUTO: ON" else "AUTO: OFF",
-                                        icon = if (isAutoStartEnabled) Icons.Default.Refresh else Icons.Default.CameraAlt,
-                                        containerColor = if (isAutoStartEnabled) MaterialTheme.colorScheme.tertiary else Color.White,
-                                        onClick = { viewModel.toggleAutoStart() },
-                                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                                        fontSize = 11.sp,
-                                        iconSize = 16.dp,
-                                        enabled = !isCapturing
-                                    )
-                                }
-
-                                LayoutSelector(
-                                    selectedFrame = selectedFrame,
-                                    isCapturing = isCapturing,
-                                    onFrameTypeSelected = { viewModel.setFrameType(it) },
-                                    modifier = Modifier.fillMaxWidth() 
-                                )
-
-                                Button(
-                                    onClick = { viewModel.setShowRecentPrints(true) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BlueGreen),
-                                    modifier = Modifier.fillMaxWidth().height(44.dp)
-                                ) {
-                                    Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("RECENT PRINTS", fontWeight = FontWeight.Black, fontSize = 11.sp)
-                                }
-                            }
-                        }
+                            },
+                            onRotateCamera = { cameraController.toggleCamera() },
+                            onViewGallery = { viewModel.toggleGalleryMaximize() },
+                            onPhotoClick = { viewModel.setPhotoForPreview(it) },
+                            onPrintClick = { viewModel.prepareForPrint(it) },
+                            onFrameTypeSelected = { viewModel.setFrameType(it) },
+                            onShowRecentPrints = { viewModel.setShowRecentPrints(true) },
+                            onBack = onBack
+                        )
                     }
                 }
             }
@@ -254,69 +121,20 @@ fun BoothUI(
 
         // --- OVERLAYS ---
         if (isGalleryMaximized) {
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    // Left Side: Full Gallery
-                    PhotoGallery(
-                        bitmaps = bitmaps,
-                        onPhotoClick = { viewModel.setPhotoForPreview(it) },
-                        onPrintClick = { viewModel.prepareForPrint(it) },
-                        isMaximized = true,
-                        onToggleMaximize = { viewModel.toggleGalleryMaximize() },
-                        onAddToPrintQueue = { viewModel.addToPrintQueue(it) },
-                        modifier = Modifier.weight(2f),
-                        enabled = !isPrinting
-                    )
-
-                    // Right Side: Live Strip Preview (So it's not a hassle to add photos)
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 4.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        if (printingPreview != null) {
-                            PrintPreviewOverlay(
-                                preview = printingPreview!!,
-                                queue = printQueue,
-                                onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
-                                onRemove = { viewModel.removeFromPrintQueue(it) },
-                                onCancel = { viewModel.cancelPrint() },
-                                onConfirm = { viewModel.confirmPrint() },
-                                isSidePanel = true,
-                                isRendering = isPrinting
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.Default.Print, 
-                                        contentDescription = null, 
-                                        modifier = Modifier.size(48.dp),
-                                        tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                                    )
-                                    Spacer(Modifier.height(16.dp))
-                                    Text(
-                                        "QUEUE IS EMPTY", 
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        "Tap + QUEUE on any photo", 
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            MaximizedGalleryOverlay(
+                bitmaps = bitmaps,
+                printingPreview = printingPreview,
+                printQueue = printQueue,
+                isPrinting = isPrinting,
+                onPhotoClick = { viewModel.setPhotoForPreview(it) },
+                onPrintClick = { viewModel.prepareForPrint(it) },
+                onAddToPrintQueue = { viewModel.addToPrintQueue(it) },
+                onToggleMaximize = { viewModel.toggleGalleryMaximize() },
+                onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
+                onRemoveFromQueue = { viewModel.removeFromPrintQueue(it) },
+                onCancelPrint = { viewModel.cancelPrint() },
+                onConfirmPrint = { viewModel.confirmPrint() }
+            )
         }
 
         selectedPhotoForPreview?.let { photo ->
@@ -357,19 +175,8 @@ fun BoothUI(
 
         // Queue Full Warning
         if (showQueueFullWarning) {
-            AlertDialog(
-                onDismissRequest = { viewModel.dismissQueueFullWarning() },
-                title = { Text("Print Queue Full") },
-                text = { Text("You can only add a maximum of 5 photos to a single print strip.") },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.dismissQueueFullWarning() },
-                        shape = RectangleShape
-                    ) {
-                        Text("GOT IT")
-                    }
-                },
-                shape = RectangleShape
+            QueueFullWarningDialog(
+                onDismiss = { viewModel.dismissQueueFullWarning() }
             )
         }
     }
