@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +54,8 @@ fun BoothUI(
     val printQueue by viewModel.printQueue.collectAsState()
     val isGalleryMaximized by viewModel.isGalleryMaximized.collectAsState()
     val selectedPhotoForPreview by viewModel.selectedPhotoForPreview.collectAsState()
+    val recentPrints by viewModel.recentPrints.collectAsState()
+    val showRecentPrints by viewModel.showRecentPrints.collectAsState()
     
     val flashAlpha = remember { Animatable(0f) }
 
@@ -116,12 +120,25 @@ fun BoothUI(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Top Row for Back Button
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        contentAlignment = Alignment.TopEnd
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        IconButton(
+                            onClick = { viewModel.setShowRecentPrints(true) },
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "Recent Prints",
+                                tint = Color.White
+                            )
+                        }
+
                         IconButton(
                             onClick = onBack,
                             modifier = Modifier
@@ -251,6 +268,18 @@ fun BoothUI(
         // Processing / Printing Progress Overlay
         if (isPrinting && (printingPreview == null)) {
             ProcessingOverlay()
+        }
+
+        // Recent Prints History Overlay
+        if (showRecentPrints) {
+            RecentPrintsOverlay(
+                prints = recentPrints,
+                onClose = { viewModel.setShowRecentPrints(false) },
+                onPrintAgain = { bitmap ->
+                    viewModel.prepareForPrint(bitmap) 
+                    viewModel.setShowRecentPrints(false)
+                }
+            )
         }
     }
 }

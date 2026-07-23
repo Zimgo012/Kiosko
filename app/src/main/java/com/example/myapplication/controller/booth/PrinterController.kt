@@ -147,6 +147,8 @@ class PrinterController(
                         clientFolder = printerManager?.settings?.templateSettings?.clientFolderName ?: "default"
                     )
                 }
+                // Notify UI to refresh prints
+                updatePrintPreview()
             }
             _printingPreview.value = null
             _isPrinting.value = false

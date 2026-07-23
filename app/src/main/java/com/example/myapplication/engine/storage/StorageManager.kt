@@ -55,11 +55,18 @@ class StorageManager(private val context: Context) {
         return folders.toList().sorted()
     }
 
-    fun loadBitmapsFromFolder(clientFolder: String): List<Bitmap> {
+    fun loadBitmapsFromFolder(clientFolder: String, isRecentPrint: Boolean = false): List<Bitmap> {
         val bitmaps = mutableListOf<Bitmap>()
         val projection = arrayOf(MediaStore.Images.Media._ID)
+        
+        val folderPath = if (isRecentPrint) {
+            "Pictures/RollieBooth/$clientFolder/recent-print/"
+        } else {
+            "Pictures/RollieBooth/$clientFolder/"
+        }
+        
         val selection = "${MediaStore.Images.Media.RELATIVE_PATH} = ?"
-        val selectionArgs = arrayOf("Pictures/RollieBooth/$clientFolder/")
+        val selectionArgs = arrayOf(folderPath)
         val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
 
         context.contentResolver.query(

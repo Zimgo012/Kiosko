@@ -12,6 +12,7 @@ import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.engine.printer.PrinterManager
 import com.example.myapplication.engine.storage.StorageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,6 +52,12 @@ class BoothViewModel : ViewModel() {
     private val _availableFolders = MutableStateFlow<List<String>>(emptyList())
     val availableFolders = _availableFolders.asStateFlow()
 
+    private val _recentPrints = MutableStateFlow<List<Bitmap>>(emptyList())
+    val recentPrints = _recentPrints.asStateFlow()
+
+    private val _showRecentPrints = MutableStateFlow(false)
+    val showRecentPrints = _showRecentPrints.asStateFlow()
+
     // UI Actions
     fun initPrinter(manager: PrinterManager) {
         printerController.initPrinter(manager)
@@ -70,7 +77,25 @@ class BoothViewModel : ViewModel() {
                 storageManager?.loadBitmapsFromFolder(folderName) ?: emptyList()
             }
             galleryController.setBitmaps(bitmaps)
+            
+            // Also refresh recent prints when folder changes
+            refreshRecentPrints()
         }
+    }
+
+    fun refreshRecentPrints() {
+        val folderName = settingsController.printTemplateSettings.value.clientFolderName
+        viewModelScope.launch {
+            val prints = withContext(Dispatchers.IO) {
+                storageManager?.loadBitmapsFromFolder(folderName, isRecentPrint = true) ?: emptyList()
+            }
+            _recentPrints.value = prints
+        }
+    }
+
+    fun setShowRecentPrints(show: Boolean) {
+        if (show) refreshRecentPrints()
+        _showRecentPrints.value = show
     }
 
     fun refreshFolders() {
@@ -128,6 +153,11 @@ class BoothViewModel : ViewModel() {
 
     fun confirmPrint() {
         printerController.confirmPrint()
+        // Refresh after a delay to ensure MediaStore is updated
+        viewModelScope.launch {
+            delay(1000)
+            refreshRecentPrints()
+        }
     }
 
     fun startCaptureCycle(onCapture: () -> Unit) {
