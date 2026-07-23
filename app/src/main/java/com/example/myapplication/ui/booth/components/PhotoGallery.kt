@@ -48,6 +48,7 @@ fun PhotoGallery(
     onToggleMaximize: () -> Unit,
     onAddToPrintQueue: (Bitmap) -> Unit = {},
     modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Box(
         modifier = modifier
@@ -93,7 +94,8 @@ fun PhotoGallery(
                             onPhotoClick = onPhotoClick,
                             onPrintClick = onPrintClick,
                             onAddToPrintQueue = onAddToPrintQueue,
-                            showAddToQueue = true
+                            showAddToQueue = true,
+                            enabled = enabled
                         )
                     }
                 }
@@ -107,7 +109,7 @@ fun PhotoGallery(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(bitmaps) { bitmap ->
-                        GalleryItem(bitmap, onPhotoClick, onPrintClick)
+                        GalleryItem(bitmap, onPhotoClick, onPrintClick, enabled = enabled)
                     }
                 }
 
@@ -138,7 +140,8 @@ private fun GalleryItem(
     onPhotoClick: (Bitmap) -> Unit,
     onPrintClick: (Bitmap) -> Unit,
     onAddToPrintQueue: (Bitmap) -> Unit = {},
-    showAddToQueue: Boolean = false
+    showAddToQueue: Boolean = false,
+    enabled: Boolean = true
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
@@ -149,7 +152,8 @@ private fun GalleryItem(
                 .clip(RoundedCornerShape(8.dp))
                 .border(2.dp, Color.White, RoundedCornerShape(8.dp))
                 .clickable { onPhotoClick(bitmap) },
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            alpha = if (enabled) 1f else 0.5f
         )
         Row(
             modifier = Modifier.padding(top = 4.dp),
@@ -161,11 +165,11 @@ private fun GalleryItem(
                 fontSize = 12.sp,
                 modifier = Modifier
                     .background(
-                        MaterialTheme.colorScheme.primary,
+                        if (enabled) MaterialTheme.colorScheme.primary else Color.Gray,
                         RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .clickable { onPrintClick(bitmap) }
+                    .clickable(enabled = enabled) { onPrintClick(bitmap) }
             )
             
             if (showAddToQueue) {
@@ -175,11 +179,11 @@ private fun GalleryItem(
                     fontSize = 12.sp,
                     modifier = Modifier
                         .background(
-                            Color.DarkGray,
+                            if (enabled) Color.DarkGray else Color.Black.copy(alpha = 0.2f),
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .clickable { onAddToPrintQueue(bitmap) }
+                        .clickable(enabled = enabled) { onAddToPrintQueue(bitmap) }
                 )
             }
         }

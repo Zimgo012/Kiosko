@@ -154,7 +154,8 @@ fun BoothUI(
                         onPrintClick = { viewModel.prepareForPrint(it) },
                         isMaximized = false,
                         onToggleMaximize = { viewModel.toggleGalleryMaximize() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isPrinting
                     )
                 }
             }
@@ -176,7 +177,8 @@ fun BoothUI(
                         isMaximized = true,
                         onToggleMaximize = { viewModel.toggleGalleryMaximize() },
                         onAddToPrintQueue = { viewModel.addToPrintQueue(it) },
-                        modifier = Modifier.weight(2f)
+                        modifier = Modifier.weight(2f),
+                        enabled = !isPrinting
                     )
 
                     // Right Side: Checkout Panel (1/3)
