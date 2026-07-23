@@ -3,9 +3,6 @@ package com.example.myapplication.engine.camera
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.content.ContentValues
-import android.os.Build
-import android.provider.MediaStore
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -19,9 +16,10 @@ class CameraController(
 ) {
     val controller = LifecycleCameraController(context).apply {
         setEnabledUseCases(LifecycleCameraController.IMAGE_CAPTURE)
+        cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
     }
 
-    private var isBackCamera = true
+    private var isBackCamera = false
 
     fun toggleCamera() {
         android.util.Log.d("CameraController", "Toggling camera from isBackCamera=$isBackCamera")
@@ -54,7 +52,6 @@ class CameraController(
                         true
                     )
 
-                    savePhotoToGallery(rotatedBitmap)
                     onPhotoCaptured(rotatedBitmap)
                     image.close()
                 }
@@ -65,32 +62,6 @@ class CameraController(
                 }
             }
         )
-    }
-
-    private fun savePhotoToGallery(bitmap: Bitmap) {
-        val name = "Photobooth_${System.currentTimeMillis()}.jpg"
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Photobooth")
-            }
-        }
-
-        val uri = context.contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            contentValues
-        )
-
-        uri?.let {
-            context.contentResolver.openOutputStream(it).use { outputStream ->
-                if (outputStream != null) {
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                }
-            }
-            // Optional: Toast for feedback
-            // Toast.makeText(context, "Saved to Gallery", Toast.LENGTH_SHORT).show()
-        }
     }
 }
 
