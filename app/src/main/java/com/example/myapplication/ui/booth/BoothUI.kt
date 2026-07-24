@@ -39,6 +39,7 @@ fun BoothUI(
     val isPrinting by viewModel.isPrinting.collectAsState()
     val printingPreview by viewModel.printingPreview.collectAsState()
     val printQueue by viewModel.printQueue.collectAsState()
+    val printQuantity by viewModel.printQuantity.collectAsState()
     val isGalleryMaximized by viewModel.isGalleryMaximized.collectAsState()
     val selectedPhotoForPreview by viewModel.selectedPhotoForPreview.collectAsState()
     val recentPrints by viewModel.recentPrints.collectAsState()
@@ -95,7 +96,7 @@ fun BoothUI(
 
                         BoothControlsOverlay(
                             modifier = Modifier.align(Alignment.BottomCenter),
-                            bitmaps = bitmaps,
+                            bitmaps = bitmaps.map { it.first }, // Extract bitmaps for overlay
                             selectedFrame = selectedFrame,
                             isCapturing = isCapturing,
                             isAutoStartEnabled = isAutoStartEnabled,
@@ -122,15 +123,16 @@ fun BoothUI(
         // --- OVERLAYS ---
         if (isGalleryMaximized) {
             MaximizedGalleryOverlay(
-                bitmaps = bitmaps,
+                items = bitmaps,
                 printingPreview = printingPreview,
                 printQueue = printQueue,
+                printQuantity = printQuantity,
                 isPrinting = isPrinting,
                 onPhotoClick = { viewModel.setPhotoForPreview(it) },
                 onPrintClick = { viewModel.prepareForPrint(it) },
                 onAddToPrintQueue = { viewModel.addToPrintQueue(it) },
                 onToggleMaximize = { viewModel.toggleGalleryMaximize() },
-                onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
+                onQuantityChange = { viewModel.setPrintQuantity(it) },
                 onRemoveFromQueue = { viewModel.removeFromPrintQueue(it) },
                 onCancelPrint = { viewModel.cancelPrint() },
                 onConfirmPrint = { viewModel.confirmPrint() }
@@ -152,7 +154,8 @@ fun BoothUI(
             PrintPreviewOverlay(
                 preview = printingPreview!!,
                 queue = printQueue,
-                onQuantityChange = { index, quantity -> viewModel.updateQuantityInQueue(index, quantity) },
+                printQuantity = printQuantity,
+                onQuantityChange = { viewModel.setPrintQuantity(it) },
                 onRemove = { viewModel.removeFromPrintQueue(it) },
                 onCancel = { viewModel.cancelPrint() },
                 onConfirm = { viewModel.confirmPrint() },
@@ -166,8 +169,8 @@ fun BoothUI(
             RecentPrintsOverlay(
                 prints = recentPrints,
                 onClose = { viewModel.setShowRecentPrints(false) },
-                onPrintAgain = { bitmap ->
-                    viewModel.prepareForPrint(bitmap) 
+                onPrintAgain = { bitmap, uri ->
+                    viewModel.prepareForPrint(bitmap, isRecentPrint = true, uri = uri)
                     viewModel.setShowRecentPrints(false)
                 }
             )

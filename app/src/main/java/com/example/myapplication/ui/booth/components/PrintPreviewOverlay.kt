@@ -29,8 +29,9 @@ import com.example.myapplication.ui.components.NeoPopButton
 @Composable
 fun PrintPreviewOverlay(
     preview: Bitmap,
-    queue: List<Pair<Bitmap, Int>>,
-    onQuantityChange: (Int, Int) -> Unit,
+    queue: List<Bitmap>,
+    printQuantity: Int,
+    onQuantityChange: (Int) -> Unit,
     onRemove: (Int) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
@@ -60,18 +61,16 @@ fun PrintPreviewOverlay(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Queue List
+            // Queue List (No more quantity per photo)
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(bottom = 24.dp).fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                itemsIndexed(queue) { index, (bitmap, quantity) ->
+                itemsIndexed(queue) { index, bitmap ->
                     QueueItem(
                         bitmap, 
-                        quantity, 
                         index, 
-                        onQuantityChange, 
                         onRemove, 
                         compact = isSidePanel,
                         enabled = !isRendering
@@ -84,9 +83,9 @@ fun PrintPreviewOverlay(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 8.dp),
                 shape = RectangleShape,
-                color = Color(0xFF263238), // Dark Slate for contrast against white paper
+                color = Color(0xFF263238), // Dark Slate for contrast
                 border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -103,11 +102,53 @@ fun PrintPreviewOverlay(
                     }
                 }
             }
+
+            // Strip Quantity Selector
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "TOTAL STRIPS:", 
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RectangleShape).padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = "-",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clickable(enabled = !isRendering && printQuantity > 1) { onQuantityChange(printQuantity - 1) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Text(
+                        text = "$printQuantity",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    Text(
+                        text = "+",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clickable(enabled = !isRendering && printQuantity < 10) { onQuantityChange(printQuantity + 1) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp),
+                    .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 NeoPopButton(
@@ -134,73 +175,37 @@ fun PrintPreviewOverlay(
 @Composable
 private fun QueueItem(
     bitmap: Bitmap,
-    quantity: Int,
     index: Int,
-    onQuantityChange: (Int, Int) -> Unit,
     onRemove: (Int) -> Unit,
     compact: Boolean,
     enabled: Boolean = true
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box {
-            Surface(
-                modifier = Modifier.size(if (compact) 70.dp else 100.dp),
-                shape = RectangleShape,
-                color = Color.White,
-                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
-            ) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize().padding(4.dp),
-                    contentScale = ContentScale.Crop,
-                    alpha = if (enabled) 1f else 0.5f
-                )
-            }
-            // Remove Button
-            IconButton(
-                onClick = { onRemove(index) },
-                enabled = enabled,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 8.dp, y = (-8).dp)
-                    .size(24.dp)
-                    .background(if (enabled) MaterialTheme.colorScheme.error else Color.Gray, RectangleShape)
-            ) {
-                Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White, modifier = Modifier.size(16.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Quantity Control
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RectangleShape).padding(horizontal = 4.dp)
+    Box {
+        Surface(
+            modifier = Modifier.size(if (compact) 70.dp else 100.dp),
+            shape = RectangleShape,
+            color = Color.White,
+            border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
         ) {
-            Text(
-                text = "-",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clickable(enabled = enabled && quantity > 1) { onQuantityChange(index, quantity - 1) }
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().padding(4.dp),
+                contentScale = ContentScale.Crop,
+                alpha = if (enabled) 1f else 0.5f
             )
-            Text(
-                text = "$quantity",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Text(
-                text = "+",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clickable(enabled = enabled && quantity < 5) { onQuantityChange(index, quantity + 1) }
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+        }
+        // Remove Button
+        IconButton(
+            onClick = { onRemove(index) },
+            enabled = enabled,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 8.dp, y = (-8).dp)
+                .size(24.dp)
+                .background(if (enabled) MaterialTheme.colorScheme.error else Color.Gray, RectangleShape)
+        ) {
+            Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White, modifier = Modifier.size(16.dp))
         }
     }
 }

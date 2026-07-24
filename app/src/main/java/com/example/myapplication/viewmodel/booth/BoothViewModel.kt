@@ -1,6 +1,7 @@
 package com.example.myapplication.viewmodel.booth
 
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.controller.booth.BoothController
@@ -33,7 +34,7 @@ class BoothViewModel : ViewModel() {
     )
 
     // States exposed to the UI
-    val bitmaps: StateFlow<List<Bitmap>> = galleryController.bitmaps
+    val bitmaps: StateFlow<List<Pair<Bitmap, Uri?>>> = galleryController.items
     val selectedFrame: StateFlow<FrameType> = settingsController.selectedFrame
     val isAutoStartEnabled: StateFlow<Boolean> = settingsController.isAutoStartEnabled
     val printTemplateSettings: StateFlow<PrintTemplateSettings> = settingsController.printTemplateSettings
@@ -47,13 +48,14 @@ class BoothViewModel : ViewModel() {
 
     val isPrinting: StateFlow<Boolean> = printerController.isPrinting
     val printingPreview: StateFlow<Bitmap?> = printerController.printingPreview
-    val printQueue: StateFlow<List<Pair<Bitmap, Int>>> = printerController.printQueue
+    val printQueue: StateFlow<List<Bitmap>> = printerController.printQueue
+    val printQuantity: StateFlow<Int> = printerController.printQuantity
     val showQueueFullWarning: StateFlow<Boolean> = printerController.showQueueFullWarning
 
     private val _availableFolders = MutableStateFlow<List<String>>(emptyList())
     val availableFolders = _availableFolders.asStateFlow()
 
-    private val _recentPrints = MutableStateFlow<List<Bitmap>>(emptyList())
+    private val _recentPrints = MutableStateFlow<List<Pair<Bitmap, android.net.Uri>>>(emptyList())
     val recentPrints = _recentPrints.asStateFlow()
 
     private val _showRecentPrints = MutableStateFlow(false)
@@ -74,10 +76,10 @@ class BoothViewModel : ViewModel() {
 
     fun loadGalleryFromFolder(folderName: String) {
         viewModelScope.launch {
-            val bitmaps = withContext(Dispatchers.IO) {
+            val items = withContext(Dispatchers.IO) {
                 storageManager?.loadBitmapsFromFolder(folderName) ?: emptyList()
             }
-            galleryController.setBitmaps(bitmaps)
+            galleryController.setItems(items)
             
             // Also refresh recent prints when folder changes
             refreshRecentPrints()
@@ -118,7 +120,11 @@ class BoothViewModel : ViewModel() {
     }
 
     fun updateQuantityInQueue(index: Int, quantity: Int) {
-        printerController.updateQuantityInQueue(index, quantity)
+        // No longer used per-photo, now used per-strip
+    }
+
+    fun setPrintQuantity(quantity: Int) {
+        printerController.setPrintQuantity(quantity)
     }
 
     fun setFrameType(frameType: FrameType) {
@@ -148,8 +154,19 @@ class BoothViewModel : ViewModel() {
         boothController.setPhotoForPreview(bitmap)
     }
 
-    fun prepareForPrint(bitmap: Bitmap) {
-        printerController.prepareForPrint(bitmap)
+    fun prepareForPrint(bitmap: Bitmap, isRecentPrint: Boolean = false, uri: Uri? = null) {
+        if (isRecentPrint && uri != null) {
+            viewModelScope.launch {
+                val fullBitmap = withContext(Dispatchers.IO) {
+                    storageManager?.loadFullBitmap(uri)
+                }
+                fullBitmap?.let {
+                    printerController.prepareForPrint(it, isRecentPrint = true)
+                }
+            }
+        } else {
+            printerController.prepareForPrint(bitmap, isRecentPrint)
+        }
     }
 
     fun cancelPrint() {

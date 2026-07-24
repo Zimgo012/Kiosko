@@ -30,7 +30,7 @@ class PrinterManager(private val context: Context) : ReceiveListener {
     // Easy to modify settings
     var settings = PrintSettings()
 
-    suspend fun printBitmap(bitmap: Bitmap): Boolean = withContext(Dispatchers.IO) {
+    suspend fun printBitmap(bitmap: Bitmap, quantity: Int = 1): Boolean = withContext(Dispatchers.IO) {
         try {
             initializePrinter()
             
@@ -38,23 +38,25 @@ class PrinterManager(private val context: Context) : ReceiveListener {
                 // 1. Process image: Add border and resize to fit paper
                 val processedBitmap = prepareBitmapForPrint(bitmap)
                 
-                // 2. Add image to buffer
-                p.addTextAlign(Printer.ALIGN_CENTER)
-                p.addImage(
-                    processedBitmap, 
-                    0, 0,
-                    processedBitmap.width,
-                    processedBitmap.height,
-                    Printer.COLOR_1,
-                    Printer.MODE_MONO,
-                    settings.halftoneMode,
-                    settings.brightness,
-                    Printer.COMPRESS_AUTO
-                )
-                
-                // 3. Feed and Cut
-                p.addFeedLine(2)
-                p.addCut(Printer.CUT_FEED)
+                repeat(quantity) {
+                    // 2. Add image to buffer
+                    p.addTextAlign(Printer.ALIGN_CENTER)
+                    p.addImage(
+                        processedBitmap, 
+                        0, 0,
+                        processedBitmap.width,
+                        processedBitmap.height,
+                        Printer.COLOR_1,
+                        Printer.MODE_MONO,
+                        settings.halftoneMode,
+                        settings.brightness,
+                        Printer.COMPRESS_AUTO
+                    )
+                    
+                    // 3. Feed and Cut
+                    p.addFeedLine(2)
+                    p.addCut(Printer.CUT_FEED)
+                }
                 
                 // 4. Connect and Send
                 p.connect("USB:", Printer.PARAM_DEFAULT)

@@ -1,18 +1,19 @@
 package com.example.myapplication.controller.booth
 
 import android.graphics.Bitmap
+import android.net.Uri
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class GalleryController {
-    private val _bitmaps = MutableStateFlow<List<Bitmap>>(emptyList())
-    val bitmaps = _bitmaps.asStateFlow()
+    private val _items = MutableStateFlow<List<Pair<Bitmap, Uri?>>>(emptyList())
+    val items = _items.asStateFlow()
 
-    fun addBitmap(bitmap: Bitmap) {
-        _bitmaps.value = listOf(bitmap) + _bitmaps.value
+    fun addItem(bitmap: Bitmap, uri: Uri? = null) {
+        _items.value = listOf(bitmap to uri) + _items.value
     }
 
-    fun setBitmaps(bitmaps: List<Bitmap>) {
-        _bitmaps.value = bitmaps
+    fun setItems(items: List<Pair<Bitmap, Uri?>>) {
+        _items.value = items
     }
 }

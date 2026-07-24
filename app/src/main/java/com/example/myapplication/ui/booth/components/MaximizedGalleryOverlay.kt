@@ -14,15 +14,16 @@ import com.example.myapplication.ui.booth.components.*
 
 @Composable
 fun MaximizedGalleryOverlay(
-    bitmaps: List<Bitmap>,
+    items: List<Pair<Bitmap, android.net.Uri?>>,
     printingPreview: Bitmap?,
-    printQueue: List<Pair<Bitmap, Int>>,
+    printQueue: List<Bitmap>,
+    printQuantity: Int,
     isPrinting: Boolean,
     onPhotoClick: (Bitmap) -> Unit,
     onPrintClick: (Bitmap) -> Unit,
     onAddToPrintQueue: (Bitmap) -> Unit,
     onToggleMaximize: () -> Unit,
-    onQuantityChange: (Int, Int) -> Unit,
+    onQuantityChange: (Int) -> Unit,
     onRemoveFromQueue: (Int) -> Unit,
     onCancelPrint: () -> Unit,
     onConfirmPrint: () -> Unit,
@@ -32,7 +33,7 @@ fun MaximizedGalleryOverlay(
         Row(modifier = Modifier.fillMaxSize()) {
             // Left Side: Full Gallery
             PhotoGallery(
-                bitmaps = bitmaps,
+                bitmaps = items.map { it.first }, // Extract bitmaps for gallery
                 onPhotoClick = onPhotoClick,
                 onPrintClick = onPrintClick,
                 isMaximized = true,
@@ -55,6 +56,7 @@ fun MaximizedGalleryOverlay(
                     PrintPreviewOverlay(
                         preview = printingPreview,
                         queue = printQueue,
+                        printQuantity = printQuantity,
                         onQuantityChange = onQuantityChange,
                         onRemove = onRemoveFromQueue,
                         onCancel = onCancelPrint,

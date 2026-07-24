@@ -99,7 +99,7 @@ class BoothController(
                         bitmap
                     }
                 }
-                galleryController.addBitmap(combinedBitmap)
+                galleryController.addItem(combinedBitmap)
                 _currentSessionPhotos.value = emptyList()
             }
         } else {

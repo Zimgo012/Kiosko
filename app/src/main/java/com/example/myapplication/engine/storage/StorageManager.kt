@@ -55,8 +55,8 @@ class StorageManager(private val context: Context) {
         return folders.toList().sorted()
     }
 
-    fun loadBitmapsFromFolder(clientFolder: String, isRecentPrint: Boolean = false): List<Bitmap> {
-        val bitmaps = mutableListOf<Bitmap>()
+    fun loadBitmapsFromFolder(clientFolder: String, isRecentPrint: Boolean = false): List<Pair<Bitmap, Uri>> {
+        val results = mutableListOf<Pair<Bitmap, Uri>>()
         val projection = arrayOf(MediaStore.Images.Media._ID)
         
         val folderPath = if (isRecentPrint) {
@@ -78,16 +78,16 @@ class StorageManager(private val context: Context) {
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             var count = 0
-            while (cursor.moveToNext() && count < 50) { // Limit to 50 for safety
+            while (cursor.moveToNext() && count < 50) {
                 val id = cursor.getLong(idColumn)
                 val contentUri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id.toString())
                 try {
                     context.contentResolver.openInputStream(contentUri)?.use { inputStream ->
                         val options = BitmapFactory.Options().apply {
-                            inSampleSize = 4 // Downsample for gallery performance
+                            inSampleSize = if (isRecentPrint) 1 else 4 // Full res for prints
                         }
                         BitmapFactory.decodeStream(inputStream, null, options)?.let { 
-                            bitmaps.add(it) 
+                            results.add(it to contentUri) 
                         }
                     }
                 } catch (e: Exception) {
@@ -96,7 +96,17 @@ class StorageManager(private val context: Context) {
                 count++
             }
         }
-        return bitmaps
+        return results
+    }
+
+    fun loadFullBitmap(uri: Uri): Bitmap? {
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { 
+                BitmapFactory.decodeStream(it)
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun saveBitmapToMediaStore(

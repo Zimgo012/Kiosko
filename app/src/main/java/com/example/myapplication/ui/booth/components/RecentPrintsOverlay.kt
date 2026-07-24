@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.booth.components
 
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,9 +30,9 @@ import com.example.myapplication.ui.components.NeoPopButton
 
 @Composable
 fun RecentPrintsOverlay(
-    prints: List<Bitmap>,
+    prints: List<Pair<Bitmap, Uri>>,
     onClose: () -> Unit,
-    onPrintAgain: (Bitmap) -> Unit
+    onPrintAgain: (Bitmap, Uri) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -89,7 +90,7 @@ fun RecentPrintsOverlay(
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    items(prints) { print ->
+                    items(prints) { (bitmap, uri) ->
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RectangleShape,
@@ -102,7 +103,7 @@ fun RecentPrintsOverlay(
                                 modifier = Modifier.padding(12.dp)
                             ) {
                                 Image(
-                                    bitmap = print.asImageBitmap(),
+                                    bitmap = bitmap.asImageBitmap(),
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -117,7 +118,7 @@ fun RecentPrintsOverlay(
                                     text = "RE-PRINT",
                                     icon = Icons.Default.Print,
                                     containerColor = MaterialTheme.colorScheme.primary,
-                                    onClick = { onPrintAgain(print) },
+                                    onClick = { onPrintAgain(bitmap, uri) },
                                     modifier = Modifier.fillMaxWidth().height(48.dp),
                                     fontSize = 12.sp,
                                     showText = true
