@@ -199,25 +199,25 @@ fun AdminScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Cloud Sync Section
-        AdminSection(title = "CLOUD SYNC") {
-            Text(
-                text = "Automatically sync all captures to your cloud storage account.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            NeoPopButton(
-                text = if (isCloudSyncEnabled) "DISABLE CLOUD SYNC" else "ENABLE CLOUD SYNC",
-                icon = Icons.Default.CloudSync,
-                containerColor = if (isCloudSyncEnabled) MaterialTheme.colorScheme.primary else Color.White,
-                onClick = { viewModel.toggleCloudSync() },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                fontSize = 14.sp
-            )
-        }
+//        // Cloud Sync Section
+//        AdminSection(title = "CLOUD SYNC") {
+//            Text(
+//                text = "Automatically sync all captures to your cloud storage account.",
+//                style = MaterialTheme.typography.bodyMedium,
+//                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+//            )
+//
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            NeoPopButton(
+//                text = if (isCloudSyncEnabled) "DISABLE CLOUD SYNC" else "ENABLE CLOUD SYNC",
+//                icon = Icons.Default.CloudSync,
+//                containerColor = if (isCloudSyncEnabled) MaterialTheme.colorScheme.primary else Color.White,
+//                onClick = { viewModel.toggleCloudSync() },
+//                modifier = Modifier.fillMaxWidth().height(56.dp),
+//                fontSize = 14.sp
+//            )
+//        }
 
         Spacer(modifier = Modifier.height(24.dp))
         
