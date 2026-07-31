@@ -20,9 +20,11 @@ import com.example.myapplication.controller.menu.AppScreen
 import com.example.myapplication.engine.camera.CameraController
 import com.example.myapplication.engine.printer.PrinterManager
 import com.example.myapplication.engine.storage.StorageManager
+import com.example.myapplication.ui.admin.AdminScreen
 import com.example.myapplication.ui.booth.BoothUI
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.viewmodel.admin.AdminViewModel
 import com.example.myapplication.viewmodel.booth.BoothViewModel
 import com.example.myapplication.viewmodel.menu.AppViewModel
 
@@ -30,6 +32,7 @@ class MainActivity : ComponentActivity() {
 
     private val appViewModel by viewModels<AppViewModel>()
     private val boothViewModel by viewModels<BoothViewModel>()
+    private val adminViewModel by viewModels<AdminViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,14 +62,9 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (currentScreen) {
                         AppScreen.Home -> {
-                            val printSettings by boothViewModel.printTemplateSettings.collectAsState()
-                            val availableFolders by boothViewModel.availableFolders.collectAsState()
                             HomeScreen(
-                                settings = printSettings,
-                                availableFolders = availableFolders,
-                                onSettingsChange = boothViewModel::updatePrintTemplate,
-                                onRefreshFolders = boothViewModel::refreshFolders,
                                 onStartCamera = { appViewModel.navigateTo(AppScreen.Camera) },
+                                onOpenAdmin = { appViewModel.navigateTo(AppScreen.Admin) },
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }
@@ -76,6 +74,28 @@ class MainActivity : ComponentActivity() {
                                 viewModel = boothViewModel,
                                 modifier = Modifier.padding(innerPadding),
                                 onBack = { appViewModel.navigateTo(AppScreen.Home) }
+                            )
+                        }
+                        AppScreen.Admin -> {
+                            val printSettings by boothViewModel.printTemplateSettings.collectAsState()
+                            val availableFolders by boothViewModel.availableFolders.collectAsState()
+                            val isAutoStartEnabled by boothViewModel.isAutoStartEnabled.collectAsState()
+                            val selectedFrame by boothViewModel.selectedFrame.collectAsState()
+                            
+                            AdminScreen(
+                                viewModel = adminViewModel,
+                                settings = printSettings,
+                                availableFolders = availableFolders,
+                                isAutoStartEnabled = isAutoStartEnabled,
+                                selectedFrame = selectedFrame,
+                                cameraController = controller,
+                                onSettingsChange = boothViewModel::updatePrintTemplate,
+                                onToggleAutoStart = boothViewModel::toggleAutoStart,
+                                onFrameTypeChange = boothViewModel::setFrameType,
+                                onRefreshFolders = boothViewModel::refreshFolders,
+                                onTestPrint = boothViewModel::testPrint,
+                                onBack = { appViewModel.navigateTo(AppScreen.Home) },
+                                modifier = Modifier.padding(innerPadding)
                             )
                         }
                     }

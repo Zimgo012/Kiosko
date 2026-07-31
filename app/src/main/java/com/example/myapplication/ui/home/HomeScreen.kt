@@ -3,6 +3,7 @@ package com.example.myapplication.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,42 +26,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.ui.components.NeoPopButton
-import com.example.myapplication.ui.home.settings.FooterSettingsDialog
-import com.example.myapplication.ui.home.settings.HeaderSettingsDialog
 import com.example.myapplication.ui.theme.BlueGreen
 import com.example.myapplication.ui.theme.SkyBlue
 
 @Composable
 fun HomeScreen(
-    settings: PrintTemplateSettings,
-    availableFolders: List<String>,
-    onSettingsChange: (PrintTemplateSettings) -> Unit,
-    onRefreshFolders: () -> Unit,
     onStartCamera: () -> Unit,
+    onOpenAdmin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showTopSettings by remember { mutableStateOf(false) }
-    var showBottomSettings by remember { mutableStateOf(false) }
-
-    if (showTopSettings) {
-        HeaderSettingsDialog(
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-            onDismiss = { showTopSettings = false }
-        )
-    }
-
-    if (showBottomSettings) {
-        FooterSettingsDialog(
-            settings = settings,
-            availableFolders = availableFolders,
-            onSettingsChange = onSettingsChange,
-            onRefreshFolders = onRefreshFolders,
-            onDismiss = { showBottomSettings = false }
-        )
-    }
+    var tapCount by remember { mutableStateOf(0) }
+    var isAdminVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -75,8 +52,20 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Central Camera Graphic
-            Box(contentAlignment = Alignment.Center) {
+            // Central Camera Graphic (Secret Tap Trigger)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    tapCount++
+                    if (tapCount >= 5) {
+                        isAdminVisible = !isAdminVisible
+                        tapCount = 0
+                    }
+                }
+            ) {
                 // White Outer Circle
                 Surface(
                     modifier = Modifier.size(200.dp),
@@ -160,29 +149,19 @@ fun HomeScreen(
                 iconSize = 48.dp
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (isAdminVisible) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            NeoPopButton(
-                text = "Settings",
-                icon = Icons.Default.Settings,
-                containerColor = Color.White,
-                onClick = { showTopSettings = true },
-                modifier = Modifier.fillMaxWidth(0.9f).height(40.dp),
-                fontSize = 14.sp,
-                iconSize = 20.dp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            NeoPopButton(
-                text = "Admin Setting",
-                icon = Icons.Default.Lock,
-                containerColor = Color.White,
-                onClick = { showBottomSettings = true },
-                modifier = Modifier.fillMaxWidth(0.9f).height(40.dp),
-                fontSize = 14.sp,
-                iconSize = 20.dp
-            )
+                NeoPopButton(
+                    text = "Admin Panel",
+                    icon = Icons.Default.Lock,
+                    containerColor = Color.White,
+                    onClick = onOpenAdmin,
+                    modifier = Modifier.fillMaxWidth(0.9f).height(40.dp),
+                    fontSize = 14.sp,
+                    iconSize = 20.dp
+                )
+            }
         }
     }
 }

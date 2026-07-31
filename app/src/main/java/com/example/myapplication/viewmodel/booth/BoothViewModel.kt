@@ -182,6 +182,23 @@ class BoothViewModel : ViewModel() {
         }
     }
 
+    fun testPrint() {
+        // Create a simple test bitmap
+        val testBitmap = Bitmap.createBitmap(512, 200, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(testBitmap)
+        canvas.drawColor(android.graphics.Color.WHITE)
+        val paint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 40f
+            isFakeBoldText = true
+        }
+        canvas.drawText("PRINTER TEST", 100f, 80f, paint)
+        canvas.drawText("OK", 220f, 150f, paint)
+        
+        printerController.addToPrintQueue(testBitmap)
+        printerController.confirmPrint()
+    }
+
     fun startCaptureCycle(onCapture: () -> Unit) {
         boothController.startCaptureCycle(onCapture)
     }
