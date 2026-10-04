@@ -31,6 +31,55 @@ class CameraController(
         }
     }
 
+    fun setExposureCompensation(index: Int) {
+        try {
+            controller.cameraControl?.setExposureCompensationIndex(index)
+        } catch (e: Exception) {
+            android.util.Log.e("CameraController", "Failed to set exposure compensation", e)
+        }
+    }
+
+    fun getExposureRange(): android.util.Range<Int> {
+        return try {
+            controller.cameraInfo?.exposureState?.exposureCompensationRange ?: android.util.Range(-6, 6)
+        } catch (e: Exception) {
+            android.util.Range(-6, 6)
+        }
+    }
+
+    fun capturePreviewBitmap(onBitmapCaptured: (Bitmap) -> Unit) {
+        controller.takePicture(
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(image: ImageProxy) {
+                    super.onCaptureSuccess(image)
+
+                    val matrix = Matrix().apply {
+                        postRotate(image.imageInfo.rotationDegrees.toFloat())
+                    }
+                    val bitmap = image.toBitmap()
+                    val rotatedBitmap = Bitmap.createBitmap(
+                        bitmap,
+                        0,
+                        0,
+                        bitmap.width,
+                        bitmap.height,
+                        matrix,
+                        true
+                    )
+
+                    onBitmapCaptured(rotatedBitmap)
+                    image.close()
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    super.onError(exception)
+                    exception.printStackTrace()
+                }
+            }
+        )
+    }
+
     fun takePhoto() {
         controller.takePicture(
             ContextCompat.getMainExecutor(context),

@@ -15,5 +15,10 @@ data class PrintTemplateSettings(
     val boothName: String = "Rollie Photo Booth",
     val phoneNumber: String = "+1 234 567 890",
     val email: String = "hello@rollie.com",
-    val clientFolderName: String = "Sarahs_18th_Birthday"
+    val clientFolderName: String = "Sarahs_18th_Birthday",
+    val ditherAutoAdjust: Boolean = true,
+    val ditherBrightnessShift: Float = 0f,
+    val ditherContrast: Float = 1.35f,
+    val ditherGamma: Float = 0.85f,
+    val cameraExposure: Int = 0
 )

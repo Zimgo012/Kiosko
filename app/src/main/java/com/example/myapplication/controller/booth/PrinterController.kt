@@ -127,7 +127,14 @@ class PrinterController(
                         )
                         
                         // 2. Process for Thermal (Grayscale + Dithering)
-                        val result = ImageProcessor.processForThermal(withTemplate, targetWidth = settings.paperWidthDots)
+                        val result = ImageProcessor.processForThermal(
+                            source = withTemplate,
+                            targetWidth = settings.paperWidthDots,
+                            autoAdjust = settings.templateSettings.ditherAutoAdjust,
+                            brightnessShiftOffset = settings.templateSettings.ditherBrightnessShift,
+                            contrastOverride = settings.templateSettings.ditherContrast,
+                            gammaOverride = settings.templateSettings.ditherGamma
+                        )
                         
                         if (withTemplate != combined) withTemplate.recycle()
                         if (combined !in queue) combined.recycle()

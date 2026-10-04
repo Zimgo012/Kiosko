@@ -12,20 +12,27 @@ object ThermalProcessor {
     /**
      * Environment-aware enhancement pipeline using Atkinson dithering.
      */
-    fun processForThermal(source: Bitmap, targetWidth: Int = 512, autoAdjust: Boolean = true): Bitmap {
+    fun processForThermal(
+        source: Bitmap,
+        targetWidth: Int = 512,
+        autoAdjust: Boolean = true,
+        brightnessShiftOffset: Float = 0f,
+        contrastOverride: Float? = null,
+        gammaOverride: Float? = null
+    ): Bitmap {
         val scale = targetWidth.toFloat() / source.width
         val targetHeight = (source.height * scale).toInt()
         val smallBitmap = Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
 
         val brightness = if (autoAdjust) analyzeBrightness(smallBitmap) else 0.5f
         
-        // High contrast helps "compress" the dot patterns into solid shapes
-        val contrast = if (brightness < 0.3f) 2.1f else 1.8f
-        // Lift brightness to ensure backgrounds are clean white
-        val shift = if (brightness > 0.7f) 30f else 20f
+        // Dynamic contrast and shift based on image brightness:
+        val baseContrast = (1.5f - brightness * 0.3f).coerceIn(1.2f, 1.6f)
+        val contrast = contrastOverride ?: baseContrast
+        val shift = 15f + (brightness * 35f) + brightnessShiftOffset
         
         val enhanced = enhanceForThermal(smallBitmap, contrast, shift)
-        val dithered = applyAtkinsonDithering(enhanced)
+        val dithered = applyAtkinsonDithering(enhanced, brightness, gammaOverride)
         
         if (enhanced != smallBitmap) enhanced.recycle()
         smallBitmap.recycle()
@@ -33,17 +40,24 @@ object ThermalProcessor {
         return dithered
     }
 
-    private fun enhanceForThermal(source: Bitmap, contrast: Float, brightness: Float): Bitmap {
+    /**
+     * Enhances contrast around the midpoint (128) and applies a brightness shift.
+     * Formula: P_out = (P_in - 128) * contrast + 128 + shift
+     * Matrix offset = 128 * (1 - contrast) + shift
+     */
+    private fun enhanceForThermal(source: Bitmap, contrast: Float, brightnessShift: Float): Bitmap {
         val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val paint = Paint()
 
+        val offset = 128f * (1f - contrast) + brightnessShift
+
         val cm = ColorMatrix().apply {
             setSaturation(0f)
             val matrix = floatArrayOf(
-                contrast, 0f, 0f, 0f, brightness,
-                0f, contrast, 0f, 0f, brightness,
-                0f, 0f, contrast, 0f, brightness,
+                contrast, 0f, 0f, 0f, offset,
+                0f, contrast, 0f, 0f, offset,
+                0f, 0f, contrast, 0f, offset,
                 0f, 0f, 0f, 1f, 0f
             )
             postConcat(ColorMatrix(matrix))
@@ -56,12 +70,21 @@ object ThermalProcessor {
 
     /**
      * Atkinson Dithering - 6-cell error diffusion kernel.
+     * Incorporates gamma compensation and dynamic highlight cutoff based on image brightness.
      */
-    private fun applyAtkinsonDithering(source: Bitmap): Bitmap {
+    private fun applyAtkinsonDithering(
+        source: Bitmap,
+        avgBrightness: Float = 0.5f,
+        gammaOverride: Float? = null
+    ): Bitmap {
         val width = source.width
         val height = source.height
         val pixels = IntArray(width * height)
         source.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val baseGamma = (0.85f - (avgBrightness - 0.5f) * 0.2f).coerceIn(0.70f, 0.90f)
+        val gamma = gammaOverride ?: baseGamma
+        val whiteCutoff = (0.92f - (avgBrightness - 0.5f) * 0.05f).coerceIn(0.85f, 0.95f)
 
         val gray = IntArray(pixels.size) { i ->
             val p = pixels[i]
@@ -70,8 +93,8 @@ object ThermalProcessor {
             val b = p and 0xFF
             
             val luma = (0.2126 * r + 0.7152 * g + 0.0722 * b)
-            val normalized = (luma / 255.0).pow(0.85)
-            val clipped = ((normalized - 0.05) / 0.90).coerceIn(0.0, 1.0)
+            val normalized = (luma / 255.0).pow(gamma.toDouble())
+            val clipped = ((normalized - 0.03) / (whiteCutoff - 0.03)).coerceIn(0.0, 1.0)
             (clipped * 255.0).toInt()
         }
 
@@ -113,18 +136,28 @@ object ThermalProcessor {
         }
     }
 
+    /**
+     * Deterministic grid sampling of luminance across the bitmap.
+     */
     private fun analyzeBrightness(bitmap: Bitmap): Float {
-        var totalBrightness = 0f
-        val sampleSize = 100
         val width = bitmap.width
         val height = bitmap.height
-        
-        repeat(sampleSize) {
-            val x = (Math.random() * width).toInt()
-            val y = (Math.random() * height).toInt()
-            val pixel = bitmap.getPixel(x, y)
-            totalBrightness += (Color.red(pixel) * 0.2126f + Color.green(pixel) * 0.7152f + Color.blue(pixel) * 0.0722f) / 255f
+        val stepX = (width / 20).coerceAtLeast(1)
+        val stepY = (height / 20).coerceAtLeast(1)
+        var totalLuma = 0f
+        var count = 0
+
+        for (y in 0 until height step stepY) {
+            for (x in 0 until width step stepX) {
+                val pixel = bitmap.getPixel(x, y)
+                val r = Color.red(pixel)
+                val g = Color.green(pixel)
+                val b = Color.blue(pixel)
+                totalLuma += (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
+                count++
+            }
         }
-        return totalBrightness / sampleSize
+        return if (count > 0) totalLuma / count else 0.5f
     }
 }
+

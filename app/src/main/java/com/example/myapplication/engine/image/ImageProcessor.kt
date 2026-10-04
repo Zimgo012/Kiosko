@@ -12,8 +12,22 @@ object ImageProcessor {
     /**
      * Environment-aware enhancement pipeline using Atkinson dithering.
      */
-    fun processForThermal(source: Bitmap, targetWidth: Int = 512, autoAdjust: Boolean = true): Bitmap {
-        return ThermalProcessor.processForThermal(source, targetWidth, autoAdjust)
+    fun processForThermal(
+        source: Bitmap,
+        targetWidth: Int = 512,
+        autoAdjust: Boolean = true,
+        brightnessShiftOffset: Float = 0f,
+        contrastOverride: Float? = null,
+        gammaOverride: Float? = null
+    ): Bitmap {
+        return ThermalProcessor.processForThermal(
+            source = source,
+            targetWidth = targetWidth,
+            autoAdjust = autoAdjust,
+            brightnessShiftOffset = brightnessShiftOffset,
+            contrastOverride = contrastOverride,
+            gammaOverride = gammaOverride
+        )
     }
 
     /**

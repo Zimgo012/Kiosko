@@ -1,5 +1,10 @@
 package com.example.myapplication.ui.admin
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,10 +28,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Card
@@ -37,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -52,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -64,10 +74,13 @@ import androidx.camera.view.PreviewView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.myapplication.controller.booth.FrameType
 import com.example.myapplication.engine.camera.CameraController
+import com.example.myapplication.engine.image.ThermalProcessor
 import com.example.myapplication.engine.printer.EventNameStyle
 import com.example.myapplication.engine.printer.PrintTemplateSettings
 import com.example.myapplication.ui.components.NeoPopButton
 import com.example.myapplication.viewmodel.admin.AdminViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AdminScreen(
@@ -196,6 +209,15 @@ fun AdminScreen(
                 fontSize = 12.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Camera & Dither Tuning Section
+        CameraAndDitherTuningSection(
+            settings = settings,
+            cameraController = cameraController,
+            onSettingsChange = onSettingsChange
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -588,5 +610,309 @@ private fun AdminSection(
             Spacer(modifier = Modifier.height(16.dp))
             content()
         }
+    }
+}
+
+@Composable
+private fun CameraAndDitherTuningSection(
+    settings: PrintTemplateSettings,
+    cameraController: CameraController,
+    onSettingsChange: (PrintTemplateSettings) -> Unit
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    var sampleBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var ditheredPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var isCapturingFrame by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (sampleBitmap == null) {
+            val width = 400
+            val height = 300
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(AndroidColor.WHITE)
+            val paint = Paint().apply {
+                isAntiAlias = true
+            }
+            
+            for (i in 0 until width) {
+                val gray = (i * 255 / width).coerceIn(0, 255)
+                paint.color = AndroidColor.rgb(gray, gray, gray)
+                canvas.drawLine(i.toFloat(), 0f, i.toFloat(), 100f, paint)
+            }
+            
+            paint.color = AndroidColor.DKGRAY
+            canvas.drawCircle(200f, 200f, 60f, paint)
+            paint.color = AndroidColor.LTGRAY
+            canvas.drawCircle(180f, 180f, 30f, paint)
+            paint.color = AndroidColor.BLACK
+            paint.textSize = 28f
+            canvas.drawText("SAMPLE DITHER", 100f, 280f, paint)
+            
+            sampleBitmap = bitmap
+        }
+    }
+
+    LaunchedEffect(
+        sampleBitmap,
+        settings.ditherAutoAdjust,
+        settings.ditherBrightnessShift,
+        settings.ditherContrast,
+        settings.ditherGamma
+    ) {
+        sampleBitmap?.let { source ->
+            withContext(Dispatchers.Default) {
+                val result = ThermalProcessor.processForThermal(
+                    source = source,
+                    targetWidth = 400,
+                    autoAdjust = settings.ditherAutoAdjust,
+                    brightnessShiftOffset = settings.ditherBrightnessShift,
+                    contrastOverride = settings.ditherContrast,
+                    gammaOverride = settings.ditherGamma
+                )
+                ditheredPreviewBitmap = result
+            }
+        }
+    }
+
+    AdminSection(title = "CAMERA & DITHER TUNING") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(180.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AndroidView(
+                        factory = { context ->
+                            PreviewView(context).apply {
+                                controller = cameraController.controller
+                                cameraController.controller.bindToLifecycle(lifecycleOwner)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Text(
+                        text = "LIVE CAMERA",
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(180.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color.Black)
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    val preview = ditheredPreviewBitmap
+                    if (preview != null) {
+                        Image(
+                            bitmap = preview.asImageBitmap(),
+                            contentDescription = "Dithered Result Preview",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text("Processing...", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text(
+                        text = "DITHER RESULT",
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        NeoPopButton(
+            text = if (isCapturingFrame) "CAPTURING..." else "SNAP CAMERA FRAME FOR PREVIEW",
+            icon = Icons.Default.Camera,
+            containerColor = Color.White,
+            onClick = {
+                if (!isCapturingFrame) {
+                    isCapturingFrame = true
+                    cameraController.capturePreviewBitmap { newFrame ->
+                        sampleBitmap = newFrame
+                        isCapturingFrame = false
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            fontSize = 11.sp,
+            iconSize = 16.dp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val exposureRange = remember { cameraController.getExposureRange() }
+        val minExp = exposureRange.lower
+        val maxExp = exposureRange.upper
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Camera Exposure", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "${if (settings.cameraExposure > 0) "+" else ""}${settings.cameraExposure} EV",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        
+        if (minExp < maxExp) {
+            Slider(
+                value = settings.cameraExposure.toFloat().coerceIn(minExp.toFloat(), maxExp.toFloat()),
+                onValueChange = { newVal ->
+                    val newInt = newVal.toInt()
+                    cameraController.setExposureCompensation(newInt)
+                    onSettingsChange(settings.copy(cameraExposure = newInt))
+                },
+                valueRange = minExp.toFloat()..maxExp.toFloat(),
+                steps = maxOf(0, maxExp - minExp - 1)
+            )
+        } else {
+            Text(
+                "Exposure control not supported by current camera",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Smart Brightness Compensation", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    "Auto-analyze brightness before dithering",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+            Switch(
+                checked = settings.ditherAutoAdjust,
+                onCheckedChange = { onSettingsChange(settings.copy(ditherAutoAdjust = it)) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Brightness Shift Offset", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "${if (settings.ditherBrightnessShift > 0) "+" else ""}${settings.ditherBrightnessShift.toInt()}",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Slider(
+            value = settings.ditherBrightnessShift,
+            onValueChange = { onSettingsChange(settings.copy(ditherBrightnessShift = it)) },
+            valueRange = -50f..50f
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Dither Contrast", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = String.format(java.util.Locale.US, "%.2fx", settings.ditherContrast),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Slider(
+            value = settings.ditherContrast,
+            onValueChange = { onSettingsChange(settings.copy(ditherContrast = it)) },
+            valueRange = 0.8f..2.0f
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Dither Gamma Curve", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = String.format(java.util.Locale.US, "%.2f", settings.ditherGamma),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Slider(
+            value = settings.ditherGamma,
+            onValueChange = { onSettingsChange(settings.copy(ditherGamma = it)) },
+            valueRange = 0.5f..1.2f
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        NeoPopButton(
+            text = "RESET TUNING DEFAULTS",
+            icon = Icons.Default.Restore,
+            containerColor = Color.White,
+            onClick = {
+                cameraController.setExposureCompensation(0)
+                onSettingsChange(
+                    settings.copy(
+                        cameraExposure = 0,
+                        ditherAutoAdjust = true,
+                        ditherBrightnessShift = 0f,
+                        ditherContrast = 1.35f,
+                        ditherGamma = 0.85f
+                    )
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            fontSize = 11.sp,
+            iconSize = 16.dp
+        )
     }
 }
